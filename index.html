@@ -1,0 +1,1535 @@
+```html
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>סל קניות חכם - הכנה וקנייה</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Heebo', sans-serif;
+      background-color: #f8fafc;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Visibility based on app mode */
+    body.mode-prep .shop-only {
+      display: none !important;
+    }
+    body.mode-shop .prep-only {
+      display: none !important;
+    }
+    .checked-item {
+      text-decoration: line-through;
+      opacity: 0.55;
+    }
+    .missing-item {
+      text-decoration: line-through;
+      color: #d97706 !important;
+      opacity: 0.75;
+    }
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="mode-prep text-slate-800 pb-28">
+
+  <!-- Sticky Top Header -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+    <div class="max-w-3xl mx-auto px-3 sm:px-4 py-2.5">
+      
+      <!-- Top Row: Title + Mode Switcher right next to it + Prep Action Buttons -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="text-xl sm:text-2xl">🛒</span>
+            <div>
+              <h1 class="text-base sm:text-xl font-extrabold text-slate-900 leading-tight">סל קניות חכם</h1>
+              <div class="prep-only flex items-center gap-1 text-[10px] font-semibold">
+                <span id="syncStatusDot" class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+                <span id="syncStatusText" class="text-slate-500">מצב מקומי</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dual Mode Switcher Pill next to title -->
+          <div class="inline-flex rounded-xl bg-slate-100 p-0.5 border border-slate-200 shadow-inner">
+            <button type="button" id="modeBtnPrep" onclick="setAppMode('prep')"
+              class="px-2.5 py-1 rounded-lg text-xs font-extrabold transition flex items-center gap-1 bg-white text-slate-900 shadow-sm">
+              <span>📝</span>
+              <span>הכנת רשימה</span>
+            </button>
+            <button type="button" id="modeBtnShop" onclick="setAppMode('shop')"
+              class="px-2.5 py-1 rounded-lg text-xs font-extrabold transition flex items-center gap-1 text-slate-600 hover:text-slate-900">
+              <span>🛍️</span>
+              <span>מצב קנייה</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Prep-Only Top Utility Buttons -->
+        <div class="prep-only flex items-center gap-1">
+          <button onclick="openModal('importModal')" class="px-2 py-1.5 rounded-lg text-xs font-bold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition" title="ייבוא מוואטסאפ">
+            📥 ייבוא
+          </button>
+          <button onclick="openModal('exportModal')" class="px-2 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition" title="שיתוף וייצוא">
+            📤 ייצוא
+          </button>
+          <button onclick="openModal('historyModal')" class="px-2 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition" title="היסטוריה ותחזית">
+            ⭐ תחזית
+          </button>
+          <button onclick="openModal('cloudModal')" class="px-2 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition" title="בדיקת סנכרון Google Drive / Sheets">
+            ☁️
+          </button>
+        </div>
+      </div>
+
+      <!-- Prep-Only Compact Frequency Bar (Weekly / Monthly / All) -->
+      <div class="prep-only grid grid-cols-3 gap-1 bg-slate-100 p-0.5 rounded-lg mt-2 border border-slate-200/70">
+        <button onclick="setFrequencyView('weekly')" id="freqBtn-weekly" class="py-1 px-1.5 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 bg-white text-blue-700 shadow-sm">
+          <span>📅</span>
+          <span>שבועית</span>
+          <span id="count-weekly" class="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700">0</span>
+        </button>
+        <button onclick="setFrequencyView('monthly')" id="freqBtn-monthly" class="py-1 px-1.5 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900">
+          <span>📦</span>
+          <span>חודשית</span>
+          <span id="count-monthly" class="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700">0</span>
+        </button>
+        <button onclick="setFrequencyView('all')" id="freqBtn-all" class="py-1 px-1.5 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900">
+          <span>🛒</span>
+          <span>הכל יחד</span>
+          <span id="count-all" class="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700">0</span>
+        </button>
+      </div>
+
+      <!-- Shop-Only Dual Color Progress & Finish Shopping Bar -->
+      <div class="shop-only mt-2.5 bg-slate-50 rounded-xl p-2.5 border border-slate-200">
+        <div class="flex flex-wrap justify-between items-center gap-1 text-xs font-bold mb-1.5">
+          <div class="flex items-center gap-1.5">
+            <span id="progressStatusText" class="text-slate-800">נותרו מוצרים לאיסוף</span>
+          </div>
+          <div class="flex items-center gap-2 text-[11px]">
+            <span class="text-emerald-700 font-extrabold">✅ נאספו: <span id="boughtCount">0</span></span>
+            <span class="text-amber-600 font-extrabold">⚠️ חסרים: <span id="missingCount">0</span></span>
+            <span class="text-slate-600">נותרו: <span id="remainingCount" class="font-extrabold text-slate-900">0</span></span>
+          </div>
+        </div>
+
+        <!-- Multi-segment Progress Bar (Green = Bought, Orange = Missing) -->
+        <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden flex">
+          <div id="progressBarBought" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%" title="נקנו"></div>
+          <div id="progressBarMissing" class="h-full bg-amber-500 transition-all duration-300" style="width: 0%" title="חסרים"></div>
+        </div>
+
+        <!-- Finish Shopping Button (Lights up when remaining === 0) -->
+        <div class="mt-2.5 flex justify-end">
+          <button id="finishShoppingBtn" onclick="handleFinishShoppingClick()" disabled
+            class="w-full py-2 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center justify-center gap-1.5 bg-slate-200 text-slate-400 cursor-not-allowed">
+            <span>🏁</span>
+            <span id="finishShoppingBtnText">סיים קנייה (יידלק כשכל המוצרים יסומנו)</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-3xl mx-auto px-3 sm:px-4 mt-3 space-y-3">
+
+    <!-- Prep-Only: Smart Recommendations Banner -->
+    <section id="smartRecommendationsBanner" class="prep-only bg-gradient-to-l from-amber-50 to-orange-50 rounded-2xl p-3 border border-amber-200 shadow-sm hidden">
+      <div class="flex items-center justify-between mb-1.5">
+        <div class="flex items-center gap-1.5 text-xs font-extrabold text-amber-900">
+          <span>💡</span>
+          <span>מומלצים להוספה השבוע (לפי תדירות קנייה):</span>
+        </div>
+        <button onclick="openModal('historyModal')" class="text-[11px] font-bold text-amber-800 underline">לכל התחזיות</button>
+      </div>
+      <div id="smartRecommendationsChips" class="flex flex-wrap gap-1.5"></div>
+    </section>
+
+    <!-- Prep-Only: Add New Item Panel -->
+    <section class="prep-only bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200">
+      <form id="addItemForm" onsubmit="handleAddItem(event)" class="space-y-2.5">
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input type="text" id="itemNameInput" placeholder="הוסף מוצר (למשל: עגבניות, חלב, אקונומיקה...)" required
+            class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            oninput="previewAutoCategory(this.value)" />
+          <div class="flex gap-2">
+            <input type="text" id="itemQtyInput" placeholder="כמות / הערה"
+              class="w-28 sm:w-32 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <select id="itemCategorySelect" class="flex-1 sm:w-44 rounded-xl border border-slate-300 px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="auto">✨ מחלקה אוטומטית</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <!-- Compact Icon Frequency Selector for New Item -->
+            <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 ml-1">
+              <button type="button" id="newFreq-auto" onclick="setNewItemFreq('auto')" class="px-2 py-1 rounded-md text-xs font-bold bg-white text-slate-800 shadow-sm" title="זיהוי אוטומטי">
+                ✨ אוטומטי
+              </button>
+              <button type="button" id="newFreq-weekly" onclick="setNewItemFreq('weekly')" class="px-2 py-1 rounded-md text-xs font-bold text-slate-600" title="קנייה שבועית">
+                📅
+              </button>
+              <button type="button" id="newFreq-monthly" onclick="setNewItemFreq('monthly')" class="px-2 py-1 rounded-md text-xs font-bold text-slate-600" title="קנייה חודשית">
+                📦
+              </button>
+            </div>
+
+            <button type="button" id="newTag-ella" onclick="toggleNewItemTag('ella')" class="px-2.5 py-1 rounded-full text-xs font-bold border border-purple-200 bg-purple-50/50 text-purple-700 hover:bg-purple-100 transition">
+              💜 לאלה
+            </button>
+            <button type="button" id="newTag-pharm" onclick="toggleNewItemTag('pharm')" class="px-2.5 py-1 rounded-full text-xs font-bold border border-rose-200 bg-rose-50/50 text-rose-700 hover:bg-rose-100 transition">
+              💊 פארם
+            </button>
+            <button type="button" id="newTag-cat" onclick="toggleNewItemTag('cat')" class="px-2.5 py-1 rounded-full text-xs font-bold border border-amber-200 bg-amber-50/50 text-amber-700 hover:bg-amber-100 transition">
+              🐱 לחתולה
+            </button>
+          </div>
+
+          <button type="submit" class="w-full sm:w-auto px-5 py-1.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition">
+            + הוסף לרשימה
+          </button>
+        </div>
+
+        <div id="autoDetectPreview" class="text-xs text-slate-500 hidden"></div>
+      </form>
+    </section>
+
+    <!-- Filters Bar (Both Modes, includes compact frequency cycle button in Shopping Mode) -->
+    <section class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <!-- Shop-Only: Compact Frequency Cycle Button inside Filters -->
+          <button onclick="cycleFrequencyView()" id="shopFreqCycleBtn"
+            class="shop-only px-2.5 py-1 rounded-full text-xs font-extrabold border border-blue-200 bg-blue-50 text-blue-800 transition flex items-center gap-1 shadow-sm"
+            title="החלף בין קנייה שבועית, חודשית או הכל יחד">
+            <span id="shopFreqCycleText">📅 שבועית</span>
+            <span class="text-[10px] opacity-70">🔄</span>
+          </button>
+
+          <button onclick="toggleFilterTag('ella')" id="filterTag-ella" class="px-2.5 py-1 rounded-full text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition flex items-center gap-1">
+            <span>💜 לאלה</span>
+            <span id="tagCount-ella" class="text-[10px] px-1.5 rounded-full bg-slate-200">0</span>
+          </button>
+          <button onclick="toggleFilterTag('pharm')" id="filterTag-pharm" class="px-2.5 py-1 rounded-full text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition flex items-center gap-1">
+            <span>💊 פארם</span>
+            <span id="tagCount-pharm" class="text-[10px] px-1.5 rounded-full bg-slate-200">0</span>
+          </button>
+          <button onclick="toggleFilterTag('cat')" id="filterTag-cat" class="px-2.5 py-1 rounded-full text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition flex items-center gap-1">
+            <span>🐱 לחתולה</span>
+            <span id="tagCount-cat" class="text-[10px] px-1.5 rounded-full bg-slate-200">0</span>
+          </button>
+
+          <button onclick="toggleTagMatchMode()" id="tagMatchModeBtn" class="text-[11px] px-2 py-1 rounded-lg bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200 transition hidden">
+            או (OR)
+          </button>
+        </div>
+
+        <div class="flex items-center gap-1.5 w-full sm:w-auto">
+          <input type="text" id="searchInput" oninput="renderList()" placeholder="חיפוש מוצר..."
+            class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 flex-1 sm:w-40" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Groceries Grouped List -->
+    <div id="groceriesContainer" class="space-y-3"></div>
+
+  </main>
+
+  <!-- Edit Item Modal (Prep Mode) -->
+  <div id="editModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2.5">
+        <h2 class="text-base font-extrabold text-slate-900">✏️ עריכת מוצר</h2>
+        <button onclick="closeModal('editModal')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+      </div>
+      <input type="hidden" id="editItemId" />
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">שם המוצר:</label>
+          <input type="text" id="editItemName" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">כמות / הערה:</label>
+          <input type="text" id="editItemQty" placeholder="למשל: 2 יח', קילו וחצי..." class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">מחלקה בסופר:</label>
+            <select id="editItemCategory" class="w-full rounded-xl border border-slate-300 px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"></select>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">סוג קנייה:</label>
+            <select id="editItemFrequency" class="w-full rounded-xl border border-slate-300 px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="weekly">📅 קנייה שבועית</option>
+              <option value="monthly">📦 קנייה חודשית</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeModal('editModal')" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">ביטול</button>
+        <button onclick="saveEditedItem()" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700">שמור שינויים</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finish Shopping & Missing Items Resolution Modal -->
+  <div id="missingResolutionModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2.5">
+        <h2 class="text-base font-extrabold text-slate-900">🏁 סיום קנייה וטיפול בחסרים</h2>
+        <button onclick="closeModal('missingResolutionModal')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        כל המוצרים שנקנו תועדו בהצלחה ביומן הקניות ובהיסטוריה! 🎉<br/>
+        סימנת <b id="missingModalCount" class="text-amber-700">0</b> מוצרים כ<b>חסרים בסופר</b>:
+      </p>
+      <ul id="missingModalList" class="text-xs font-bold text-slate-800 bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1 max-h-40 overflow-y-auto"></ul>
+      <p class="text-xs font-bold text-slate-700">מה תרצה לעשות עם המוצרים החסרים?</p>
+      <div class="flex flex-col sm:flex-row gap-2 pt-1">
+        <button onclick="resolveMissingItems('keep')" class="flex-1 py-2.5 px-3 rounded-xl text-xs font-extrabold bg-emerald-600 text-white hover:bg-emerald-700 transition">
+          🔄 החזר לרשימה לשבוע הבא
+        </button>
+        <button onclick="resolveMissingItems('delete')" class="flex-1 py-2.5 px-3 rounded-xl text-xs font-extrabold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition">
+          🗑️ מחק אותם מהרשימה
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WhatsApp Import Modal -->
+  <div id="importModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h2 class="text-lg font-extrabold text-slate-900">📥 ייבוא רשימה מוואטסאפ</h2>
+        <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+      </div>
+      <p class="text-xs text-slate-600">הדבק כאן הודעת וואטסאפ או רשימת מוצרים (כל מוצר בשורה חדשה או מופרד בפסיקים):</p>
+      <textarea id="importTextarea" rows="5" placeholder="למשל:&#10;חלב 3%&#10;2 קוטג'&#10;עגבניות&#10;אקונומיקה"
+        class="w-full rounded-xl border border-slate-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+        <div class="text-xs font-bold text-slate-700">שיוך לקנייה:</div>
+        <div class="flex flex-wrap gap-3">
+          <label class="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+            <input type="radio" name="importFreq" value="auto" checked class="accent-emerald-600" />
+            <span>✨ אוטומטי</span>
+          </label>
+          <label class="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+            <input type="radio" name="importFreq" value="weekly" class="accent-blue-600" />
+            <span>📅 שבועית</span>
+          </label>
+          <label class="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+            <input type="radio" name="importFreq" value="monthly" class="accent-amber-600" />
+            <span>📦 חודשית</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+        <div class="text-xs font-bold text-slate-700">סימון גורף לכל המוצרים:</div>
+        <div class="flex flex-wrap gap-3">
+          <label class="flex items-center gap-1.5 text-xs font-bold text-purple-700 cursor-pointer">
+            <input type="checkbox" id="importTagElla" class="accent-purple-600 w-4 h-4 rounded" />
+            <span>💜 עבור אלה</span>
+          </label>
+          <label class="flex items-center gap-1.5 text-xs font-bold text-rose-700 cursor-pointer">
+            <input type="checkbox" id="importTagPharm" class="accent-rose-600 w-4 h-4 rounded" />
+            <span>💊 פארם</span>
+          </label>
+          <label class="flex items-center gap-1.5 text-xs font-bold text-amber-700 cursor-pointer">
+            <input type="checkbox" id="importTagCat" class="accent-amber-600 w-4 h-4 rounded" />
+            <span>🐱 עבור החתולה</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('importModal')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">ביטול</button>
+        <button onclick="processImport()" class="px-5 py-2 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700">ייבא לרשימה</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History & Predictions Modal -->
+  <div id="historyModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-5 shadow-xl space-y-4 max-h-[85vh] flex flex-col">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h2 class="text-lg font-extrabold text-slate-900">⭐ היסטוריית קניות ותחזית</h2>
+          <p class="text-xs text-slate-500">מחשב כל כמה ימים בממוצע אתה קונה כל מוצר</p>
+        </div>
+        <button onclick="closeModal('historyModal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <button onclick="addBulkFromHistory('due')" class="text-xs px-3 py-1.5 rounded-xl bg-orange-100 text-orange-900 font-extrabold border border-orange-300 hover:bg-orange-200">
+          💡 הוסף מומלצים להשבוע
+        </button>
+        <button onclick="addBulkFromHistory('weekly')" class="text-xs px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 font-bold border border-blue-200 hover:bg-blue-100">
+          + כל השבועיים הקבועים
+        </button>
+        <button onclick="addBulkFromHistory('monthly')" class="text-xs px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 font-bold border border-amber-200 hover:bg-amber-100">
+          + כל החודשיים הקבועים
+        </button>
+      </div>
+
+      <div id="historyListContainer" class="overflow-y-auto space-y-2 flex-1 pr-1"></div>
+
+      <div class="flex justify-end border-t pt-3">
+        <button onclick="closeModal('historyModal')" class="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">סגור</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Modal -->
+  <div id="exportModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h2 class="text-lg font-extrabold text-slate-900">📤 ייצוא ושיתוף בוואטסאפ</h2>
+        <button onclick="closeModal('exportModal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+      </div>
+
+      <div class="flex flex-wrap gap-3 text-xs">
+        <label class="flex items-center gap-1.5 font-semibold cursor-pointer">
+          <input type="checkbox" id="exportOnlyUnchecked" checked onchange="updateExportPreview()" class="accent-emerald-600" />
+          <span>רק מוצרים שטרם נאספו</span>
+        </label>
+        <label class="flex items-center gap-1.5 font-semibold cursor-pointer">
+          <input type="checkbox" id="exportGroupByCategory" checked onchange="updateExportPreview()" class="accent-emerald-600" />
+          <span>חלוקה לפי מחלקות הסופר</span>
+        </label>
+      </div>
+
+      <textarea id="exportPreviewTextarea" rows="8" readonly
+        class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-mono focus:outline-none"></textarea>
+
+      <div class="flex flex-wrap justify-end gap-2">
+        <button onclick="copyExportText()" class="px-4 py-2 rounded-xl text-sm font-bold bg-slate-200 text-slate-800 hover:bg-slate-300">
+          📋 העתק ללוח
+        </button>
+        <button onclick="shareToWhatsApp()" class="px-5 py-2 rounded-xl text-sm font-bold bg-green-600 text-white hover:bg-green-700">
+          💬 שלח בוואטסאפ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cloud Sync Modal -->
+  <div id="cloudModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h2 class="text-lg font-extrabold text-slate-900">☁️ מצב סנכרון Google Drive & Sheets</h2>
+        <button onclick="closeModal('cloudModal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-bold text-slate-700">כתובת Google Apps Script Web App URL (לחיבור מ-GitHub):</label>
+        <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec"
+          class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+      </div>
+
+      <div class="flex flex-wrap justify-between items-center gap-2 pt-2 border-t">
+        <button onclick="syncFromCloudNow()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
+          🔄 בדוק וסנכרן עכשיו
+        </button>
+        <div class="flex gap-2">
+          <button onclick="closeModal('cloudModal')" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">סגור</button>
+          <button onclick="saveCloudConfig()" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700">שמור הגדרות</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CATEGORIES = {
+      produce: {
+        name: 'ירקות ופירות',
+        icon: '🥦',
+        defaultFreq: 'weekly',
+        defaultIntervalDays: 7,
+        keywords: ['עגבני', 'מלפפון', 'גזר', 'בצל', 'תפוח אדמה', 'תפו"א', 'חסה', 'פלפל', 'גמבה', 'קישוא', 'חציל', 'לימון', 'אבוקדו', 'תפוח', 'בננה', 'ענבים', 'אבטיח', 'מלון', 'שום', 'פטרוזיליה', 'כוסברה', 'שמיר', 'נענע', 'בטטה', 'כרוב', 'כרובית', 'ברוקולי', 'סלרי', 'פטריות', 'תות', 'אגס', 'אפרסק', 'קלמנטינה', 'תפוז']
+      },
+      dairy: {
+        name: 'חלב, ביצים ומקרר',
+        icon: '🧀',
+        defaultFreq: 'weekly',
+        defaultIntervalDays: 6,
+        keywords: ['חלב', 'קוטג', 'גבינה', 'צהובה', 'בולגרית', 'לבנה', 'יוגורט', 'מעדן', 'חמאה', 'שמנת', 'ביצים', 'ביצה', 'מוצרלה', 'פרמזן', 'ריקוטה', 'לאבנה', 'אקטימל', 'דנונה', 'מילקי', 'חומוס', 'טחינה מוכנה', 'סלט']
+      },
+      bakery: {
+        name: 'מאפייה ולחמים',
+        icon: '🥖',
+        defaultFreq: 'weekly',
+        defaultIntervalDays: 6,
+        keywords: ['לחם', 'פיתה', 'פיתות', 'לחמני', 'חלה', 'בגט', 'טורטי', 'בורקס', 'עוגה', 'עוגיות', 'רוגלך', 'קרואסון']
+      },
+      meat: {
+        name: 'בשר, עוף ודגים',
+        icon: '🥩',
+        defaultFreq: 'weekly',
+        defaultIntervalDays: 10,
+        keywords: ['עוף', 'חזה עוף', 'שניצל', 'פרגית', 'פרגיות', 'בקר', 'בשר', 'טחון', 'אנטריקוט', 'סטייק', 'קבב', 'המבורגר', 'נקניק', 'פסטרמה', 'סלמון', 'דג', 'אמנון', 'מושט', 'דניס', 'שוקיים', 'כרעיים', 'כנפיים']
+      },
+      pantry: {
+        name: 'מזווה, בישול ושימורים',
+        icon: '🥫',
+        defaultFreq: 'monthly',
+        defaultIntervalDays: 28,
+        keywords: ['אורז', 'פסטה', 'פתיתים', 'קוסקוס', 'בורגול', 'קינואה', 'עדשים', 'שעועית', 'גרגירי חומוס', 'שמן', 'שמן זית', 'קמח', 'סוכר', 'מלח', 'תבלין', 'פפריקה', 'כמון', 'פלפל שחור', 'רסק', 'עגבניות מרוסקות', 'טונה', 'תירס', 'זיתים', 'מלפפון חמוץ', 'חמוצים', 'טחינה גולמית', 'דבש', 'סילאן', 'מיונז', 'קטשופ', 'חרדל', 'רוטב', 'סויה', 'אבקת אפייה', 'שמרים', 'קוואקר', 'שיבולת שועל']
+      },
+      frozen: {
+        name: 'קפואים',
+        icon: '🧊',
+        defaultFreq: 'monthly',
+        defaultIntervalDays: 21,
+        keywords: ['קפוא', 'אפונה', 'שעועית ירוקה', 'גלידה', 'פיצה', 'מלוואח', 'ג׳חנון', 'גחנון', 'בצק עלים', 'צ׳יפס', 'ציפס', 'שניצל תירס', 'טבעול', 'קרח']
+      },
+      snacks: {
+        name: 'חטיפים, מתוקים ושתייה',
+        icon: '🥨',
+        defaultFreq: 'weekly',
+        defaultIntervalDays: 10,
+        keywords: ['במבה', 'ביסלי', 'תפוצ׳יפס', 'בייגלה', 'שוקולד', 'חטיף', 'סוכריות', 'מסטיק', 'קפה', 'נס קפה', 'תה', 'מים', 'קולה', 'סודה', 'מיץ', 'בירה', 'יין', 'קורנפלקס', 'דגני בוקר', 'פופקורן', 'פיצוחים', 'שקדים', 'אגוזים']
+      },
+      cleaning: {
+        name: 'ניקיון וחד פעמי',
+        icon: '🧼',
+        defaultFreq: 'monthly',
+        defaultIntervalDays: 30,
+        keywords: ['אקונומיקה', 'נוזל כלים', 'סבון כלים', 'טבליות למדיח', 'אבקת כביסה', 'ג׳ל כביסה', 'מרכך כביסה', 'נייר טואלט', 'נייר סופג', 'מגבונים', 'שקיות אשפה', 'שקיות אוכל', 'נייר אפייה', 'ניילון נצמד', 'רדיד אלומיניום', 'נייר כסף', 'סמרטוט', 'סקוץ', 'חד פעמי', 'כוסות', 'צלחות', 'מפות', 'נוזל רצפה']
+      },
+      pharm: {
+        name: 'פארם וטיפוח',
+        icon: '💊',
+        defaultFreq: 'monthly',
+        defaultIntervalDays: 30,
+        keywords: ['שמפו', 'מרכך שיער', 'סבון גוף', 'ג׳ל רחצה', 'משחת שיניים', 'מברשת שיניים', 'דאודורנט', 'קרם', 'אקמול', 'נורופן', 'אופטלגין', 'פלסטר', 'ויטמין', 'תחבושות', 'פדים', 'סכיני גילוח', 'קצף גילוח', 'מי פה', 'חוט דנטלי', 'צמר גפן', 'קיסמי אוזניים']
+      },
+      pets: {
+        name: 'חיות מחמד (חתולה)',
+        icon: '🐱',
+        defaultFreq: 'monthly',
+        defaultIntervalDays: 28,
+        keywords: ['חול לחתול', 'חול מתגבש', 'אוכל לחתול', 'מזון לחתול', 'שימורים לחתול', 'מעדן לחתול', 'חטיף לחתול', 'לחתולה', 'פיצי']
+      },
+      other: {
+        name: 'כללי / אחר',
+        icon: '📦',
+        defaultFreq: 'weekly',
+        defaultIntervalDays: 14,
+        keywords: []
+      }
+    };
+
+    // State
+    let items = [];
+    let historyItems = [];
+    let appMode = 'prep'; // 'prep' (default) | 'shop'
+    let currentFrequencyView = 'weekly'; // 'weekly' | 'monthly' | 'all'
+    let newItemFrequency = 'auto';
+    let newItemTags = { ella: false, pharm: false, cat: false };
+    let activeTagFilters = { ella: false, pharm: false, cat: false };
+    let tagMatchMode = 'OR';
+    let gasWebAppUrl = localStorage.getItem('smart_groceries_gas_url') || '';
+
+    function isRunningInsideGoogleAppsScript() {
+      return typeof google !== 'undefined' && google.script && google.script.run;
+    }
+
+    function updateSyncBadge(status, text) {
+      const dot = document.getElementById('syncStatusDot');
+      const label = document.getElementById('syncStatusText');
+      if (!dot || !label) return;
+      label.textContent = text;
+      if (status === 'synced') {
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block';
+      } else if (status === 'syncing') {
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping inline-block';
+      } else {
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 inline-block';
+      }
+    }
+
+    function init() {
+      populateCategorySelects();
+      document.getElementById('gasUrlInput').value = gasWebAppUrl;
+      loadState();
+      setAppMode('prep');
+      syncFromCloudNow(true);
+    }
+
+    function populateCategorySelects() {
+      const addSelect = document.getElementById('itemCategorySelect');
+      const editSelect = document.getElementById('editItemCategory');
+      Object.entries(CATEGORIES).forEach(([key, cat]) => {
+        const opt1 = document.createElement('option');
+        opt1.value = key;
+        opt1.textContent = `${cat.icon} ${cat.name}`;
+        addSelect.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = key;
+        opt2.textContent = `${cat.icon} ${cat.name}`;
+        editSelect.appendChild(opt2);
+      });
+    }
+
+    function daysAgoISO(days) {
+      const d = new Date();
+      d.setDate(d.getDate() - days);
+      return d.toISOString().split('T')[0];
+    }
+
+    function loadState() {
+      const savedItems = localStorage.getItem('smart_groceries_items_v4') || localStorage.getItem('smart_groceries_items_v3');
+      const savedHistory = localStorage.getItem('smart_groceries_history_v4') || localStorage.getItem('smart_groceries_history_v3');
+
+      if (savedItems) {
+        items = JSON.parse(savedItems).map(i => ({ ...i, missing: Boolean(i.missing) }));
+      } else {
+        items = [
+          { id: '1', name: 'חלב 3%', qty: '2 קרטונים', category: 'dairy', frequency: 'weekly', checked: false, missing: false, tags: { ella: false, pharm: false, cat: false } },
+          { id: '2', name: 'עגבניות ומלפפונים', qty: '1 ק"ג כ"א', category: 'produce', frequency: 'weekly', checked: false, missing: false, tags: { ella: false, pharm: false, cat: false } },
+          { id: '3', name: 'לחם מחמצת פרוס', qty: '1', category: 'bakery', frequency: 'weekly', checked: false, missing: false, tags: { ella: true, pharm: false, cat: false } },
+          { id: '4', name: 'גבינת קוטג׳ 5%', qty: '2', category: 'dairy', frequency: 'weekly', checked: false, missing: false, tags: { ella: false, pharm: false, cat: false } },
+          { id: '5', name: 'שמן זית כתית מעולה', qty: '1 ליטר', category: 'pantry', frequency: 'monthly', checked: false, missing: false, tags: { ella: false, pharm: false, cat: false } },
+          { id: '6', name: 'נייר טואלט ונוזל כלים', qty: 'מארז גדול', category: 'cleaning', frequency: 'monthly', checked: false, missing: false, tags: { ella: false, pharm: false, cat: false } },
+          { id: '7', name: 'חול מתגבש ואוכל לחתולה', qty: 'שק 10 ק"ג', category: 'pets', frequency: 'monthly', checked: false, missing: false, tags: { ella: false, pharm: false, cat: true } }
+        ];
+      }
+
+      if (savedHistory) {
+        historyItems = JSON.parse(savedHistory);
+      } else {
+        historyItems = [
+          { name: 'ביצים L (12 יח׳)', category: 'dairy', frequency: 'weekly', count: 14, avgIntervalDays: 7, lastBought: daysAgoISO(9), tags: { ella: false, pharm: false, cat: false } },
+          { name: 'חזה עוף טרי', category: 'meat', frequency: 'weekly', count: 9, avgIntervalDays: 7, lastBought: daysAgoISO(10), tags: { ella: false, pharm: false, cat: false } },
+          { name: 'אבוקדו בשל', category: 'produce', frequency: 'weekly', count: 8, avgIntervalDays: 6, lastBought: daysAgoISO(7), tags: { ella: true, pharm: false, cat: false } },
+          { name: 'אורז בסמטי', category: 'pantry', frequency: 'monthly', count: 5, avgIntervalDays: 28, lastBought: daysAgoISO(31), tags: { ella: false, pharm: false, cat: false } }
+        ];
+      }
+    }
+
+    function saveState(skipCloudPush = false) {
+      localStorage.setItem('smart_groceries_items_v4', JSON.stringify(items));
+      localStorage.setItem('smart_groceries_history_v4', JSON.stringify(historyItems));
+      if (!skipCloudPush) {
+        pushStateToCloud();
+      }
+    }
+
+    // Mode Switching ('prep' vs 'shop')
+    function setAppMode(mode) {
+      appMode = mode;
+      document.body.classList.toggle('mode-prep', mode === 'prep');
+      document.body.classList.toggle('mode-shop', mode === 'shop');
+
+      const btnPrep = document.getElementById('modeBtnPrep');
+      const btnShop = document.getElementById('modeBtnShop');
+
+      if (mode === 'prep') {
+        btnPrep.className = 'px-2.5 py-1 rounded-lg text-xs font-extrabold transition flex items-center gap-1 bg-white text-slate-900 shadow-sm';
+        btnShop.className = 'px-2.5 py-1 rounded-lg text-xs font-extrabold transition flex items-center gap-1 text-slate-600 hover:text-slate-900';
+      } else {
+        btnShop.className = 'px-2.5 py-1 rounded-lg text-xs font-extrabold transition flex items-center gap-1 bg-emerald-600 text-white shadow-sm';
+        btnPrep.className = 'px-2.5 py-1 rounded-lg text-xs font-extrabold transition flex items-center gap-1 text-slate-600 hover:text-slate-900';
+      }
+
+      renderList();
+    }
+
+    // Cloud Sync Functions
+    function syncFromCloudNow(silent = false) {
+      if (isRunningInsideGoogleAppsScript()) {
+        updateSyncBadge('syncing', 'טוען מענן...');
+        google.script.run
+          .withSuccessHandler(res => applyCloudData(res))
+          .withFailureHandler(() => updateSyncBadge('local', 'שגיאת ענן - מקומי'))
+          .getSmartCartData();
+      } else if (gasWebAppUrl) {
+        updateSyncBadge('syncing', 'מסנכרן...');
+        fetch(gasWebAppUrl + '?action=getData')
+          .then(r => r.json())
+          .then(res => applyCloudData(res))
+          .catch(() => updateSyncBadge('local', 'אופליין (מקומי)'));
+      } else if (!silent) {
+        alert('כדי לסנכרן מול Google Sheets מחוץ לדרייב, הדבק את כתובת ה-Web App URL.');
+      }
+    }
+
+    function applyCloudData(res) {
+      if (res && Array.isArray(res.items)) {
+        items = res.items.map(i => ({ ...i, missing: Boolean(i.missing) }));
+      }
+      if (res && Array.isArray(res.historyItems) && res.historyItems.length > 0) {
+        historyItems = res.historyItems;
+      }
+      saveState(true);
+      renderList();
+      updateSyncBadge('synced', 'מסונכרן לענן ☁️');
+    }
+
+    function pushStateToCloud(purchaseLogEntries = []) {
+      const payload = { items, historyItems, purchaseLogEntries };
+
+      if (isRunningInsideGoogleAppsScript()) {
+        updateSyncBadge('syncing', 'שומר...');
+        google.script.run
+          .withSuccessHandler(() => updateSyncBadge('synced', 'נשמר בענן ☁️'))
+          .withFailureHandler(() => updateSyncBadge('local', 'נשמר מקומית'))
+          .saveSmartCartData(payload);
+      } else if (gasWebAppUrl) {
+        updateSyncBadge('syncing', 'שומר...');
+        fetch(gasWebAppUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        })
+          .then(() => updateSyncBadge('synced', 'נשמר בענן ☁️'))
+          .catch(() => updateSyncBadge('local', 'נשמר מקומית'));
+      }
+    }
+
+    function saveCloudConfig() {
+      gasWebAppUrl = document.getElementById('gasUrlInput').value.trim();
+      localStorage.setItem('smart_groceries_gas_url', gasWebAppUrl);
+      closeModal('cloudModal');
+      if (gasWebAppUrl) syncFromCloudNow();
+    }
+
+    // Frequency & Smart Interval Prediction Logic
+    function getDaysSince(dateStr) {
+      if (!dateStr) return 999;
+      const diff = Date.now() - new Date(dateStr).getTime();
+      return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+    }
+
+    function getUrgencyScore(hItem) {
+      const alreadyInCart = items.some(i => i.name.trim() === hItem.name.trim());
+      if (alreadyInCart) return -1;
+      const daysSince = getDaysSince(hItem.lastBought);
+      const targetInterval = hItem.avgIntervalDays || (hItem.frequency === 'monthly' ? 28 : 7);
+      return daysSince / targetInterval;
+    }
+
+    function isItemDueToBuy(hItem) {
+      return getUrgencyScore(hItem) >= 1.0;
+    }
+
+    // Helper: Look up previously saved item in history or active list
+    function findPreviouslySavedItem(cleanText) {
+      if (!cleanText) return null;
+      const normalized = cleanText.replace(/\(לאלה\)/g, '').trim().toLowerCase();
+      if (!normalized) return null;
+
+      // 1. Exact match in historyItems or current items
+      const exactHist = historyItems.find(h => h.name.trim().toLowerCase() === normalized);
+      if (exactHist) return exactHist;
+
+      const exactActive = items.find(i => i.name.trim().toLowerCase() === normalized);
+      if (exactActive) return exactActive;
+
+      // 2. Partial match in historyItems (if the saved product name is contained in the input or vice-versa, min 3 chars)
+      const partialHist = historyItems.find(h => {
+        const hName = h.name.trim().toLowerCase();
+        return hName.length >= 3 && (normalized.includes(hName) || hName.includes(normalized));
+      });
+      if (partialHist) return partialHist;
+
+      return null;
+    }
+
+    function analyzeItemText(rawText) {
+      let text = rawText.trim();
+      let detectedTags = { ella: false, pharm: false, cat: false };
+
+      if (text.includes('אלה') || text.includes('(לאלה)')) detectedTags.ella = true;
+      if (text.includes('פארם') || text.includes('סופר פארם')) detectedTags.pharm = true;
+      if (text.includes('חתול') || text.includes('פיצי')) detectedTags.cat = true;
+
+      const savedMatch = findPreviouslySavedItem(text);
+      if (savedMatch && savedMatch.tags) {
+        detectedTags.ella = detectedTags.ella || Boolean(savedMatch.tags.ella);
+        detectedTags.pharm = detectedTags.pharm || Boolean(savedMatch.tags.pharm);
+        detectedTags.cat = detectedTags.cat || Boolean(savedMatch.tags.cat);
+      }
+
+      // 1. If previously saved with a specific non-'other' category, prioritize user's saved choice
+      let matchedCategory = null;
+      let matchedFromHistory = false;
+
+      if (savedMatch && savedMatch.category && savedMatch.category !== 'other' && CATEGORIES[savedMatch.category]) {
+        matchedCategory = savedMatch.category;
+        matchedFromHistory = true;
+      }
+
+      // 2. Otherwise, check keyword dictionary
+      if (!matchedCategory) {
+        for (const [catKey, catData] of Object.entries(CATEGORIES)) {
+          if (catData.keywords.some(kw => text.includes(kw))) {
+            matchedCategory = catKey;
+            break;
+          }
+        }
+      }
+
+      // 3. If still not recognized by keywords, check if it was saved in history (even as 'other'), otherwise default to 'other' (כללי)
+      if (!matchedCategory) {
+        if (savedMatch && savedMatch.category && CATEGORIES[savedMatch.category]) {
+          matchedCategory = savedMatch.category;
+          matchedFromHistory = true;
+        } else {
+          matchedCategory = 'other';
+        }
+      }
+
+      if (matchedCategory === 'pharm') detectedTags.pharm = true;
+      if (matchedCategory === 'pets') detectedTags.cat = true;
+
+      let defaultFreq = (savedMatch && savedMatch.frequency)
+        ? savedMatch.frequency
+        : (CATEGORIES[matchedCategory]?.defaultFreq || 'weekly');
+
+      if (text.includes('חודשי') || text.includes('מארז')) defaultFreq = 'monthly';
+
+      return { category: matchedCategory, frequency: defaultFreq, tags: detectedTags, matchedFromHistory };
+    }
+
+    function previewAutoCategory(val) {
+      const previewEl = document.getElementById('autoDetectPreview');
+      if (!val.trim()) {
+        previewEl.classList.add('hidden');
+        return;
+      }
+      const analysis = analyzeItemText(val);
+      const cat = CATEGORIES[analysis.category];
+      const freqIcon = (newItemFrequency === 'auto' ? analysis.frequency : newItemFrequency) === 'monthly' ? '📦 חודשית' : '📅 שבועית';
+      const sourceBadge = analysis.matchedFromHistory ? ' <span class="text-emerald-700 font-semibold">(זכור מהיסטוריית קניות ⭐)</span>' : '';
+      previewEl.innerHTML = `סיווג אוטומטי: <b>${cat.icon} ${cat.name}</b> · <b>${freqIcon}</b>${sourceBadge}`;
+      previewEl.classList.remove('hidden');
+    }
+
+    function setNewItemFreq(freq) {
+      newItemFrequency = freq;
+      ['auto', 'weekly', 'monthly'].forEach(f => {
+        const btn = document.getElementById(`newFreq-${f}`);
+        btn.className = f === freq
+          ? 'px-2 py-1 rounded-md text-xs font-bold bg-white text-slate-900 shadow-sm'
+          : 'px-2 py-1 rounded-md text-xs font-bold text-slate-600';
+      });
+      previewAutoCategory(document.getElementById('itemNameInput').value);
+    }
+
+    function toggleNewItemTag(tag) {
+      newItemTags[tag] = !newItemTags[tag];
+      const btn = document.getElementById(`newTag-${tag}`);
+      if (newItemTags[tag]) {
+        btn.classList.add('ring-2', 'ring-offset-1', 'ring-slate-800', 'font-extrabold');
+      } else {
+        btn.classList.remove('ring-2', 'ring-offset-1', 'ring-slate-800', 'font-extrabold');
+      }
+    }
+
+    function handleAddItem(e) {
+      e.preventDefault();
+      const nameInput = document.getElementById('itemNameInput');
+      const qtyInput = document.getElementById('itemQtyInput');
+      const catSelect = document.getElementById('itemCategorySelect');
+
+      const name = nameInput.value.trim();
+      if (!name) return;
+
+      const analysis = analyzeItemText(name);
+      const chosenCategory = catSelect.value === 'auto' ? analysis.category : catSelect.value;
+      const chosenFreq = newItemFrequency === 'auto'
+        ? (analysis.matchedFromHistory ? analysis.frequency : (CATEGORIES[chosenCategory]?.defaultFreq || analysis.frequency))
+        : newItemFrequency;
+
+      const finalTags = {
+        ella: newItemTags.ella || analysis.tags.ella,
+        pharm: newItemTags.pharm || analysis.tags.pharm || chosenCategory === 'pharm',
+        cat: newItemTags.cat || analysis.tags.cat || chosenCategory === 'pets'
+      };
+
+      const newItem = {
+        id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+        name,
+        qty: qtyInput.value.trim(),
+        category: chosenCategory,
+        frequency: chosenFreq,
+        checked: false,
+        missing: false,
+        tags: finalTags
+      };
+
+      items.unshift(newItem);
+      recordItemInHistory(newItem, false);
+
+      nameInput.value = '';
+      qtyInput.value = '';
+      catSelect.value = 'auto';
+      document.getElementById('autoDetectPreview').classList.add('hidden');
+
+      saveState();
+      renderList();
+    }
+
+    function recordItemInHistory(item, isCompletedPurchase = false) {
+      const todayISO = new Date().toISOString().split('T')[0];
+      const existing = historyItems.find(h => h.name.trim().toLowerCase() === item.name.trim().toLowerCase());
+      const defaultInterval = CATEGORIES[item.category]?.defaultIntervalDays || (item.frequency === 'monthly' ? 28 : 7);
+
+      if (existing) {
+        if (isCompletedPurchase) {
+          const daysSinceLast = getDaysSince(existing.lastBought);
+          if (daysSinceLast > 0 && daysSinceLast < 180) {
+            existing.avgIntervalDays = Math.round(((existing.avgIntervalDays || defaultInterval) + daysSinceLast) / 2);
+          }
+          existing.lastBought = todayISO;
+          existing.count = (existing.count || 1) + 1;
+        }
+        existing.frequency = item.frequency;
+        existing.category = item.category;
+        existing.tags = { ...(existing.tags || {}), ...(item.tags || {}) };
+      } else {
+        historyItems.push({
+          name: item.name,
+          category: item.category,
+          frequency: item.frequency,
+          count: 1,
+          avgIntervalDays: defaultInterval,
+          lastBought: isCompletedPurchase ? todayISO : daysAgoISO(defaultInterval + 1),
+          tags: { ...(item.tags || { ella: false, pharm: false, cat: false }) }
+        });
+      }
+    }
+
+    function setFrequencyView(view) {
+      currentFrequencyView = view;
+      const views = {
+        weekly: { activeClass: 'bg-white text-blue-700 shadow-sm', shopLabel: '📅 שבועית' },
+        monthly: { activeClass: 'bg-white text-amber-700 shadow-sm', shopLabel: '📦 חודשית' },
+        all: { activeClass: 'bg-white text-emerald-700 shadow-sm', shopLabel: '🛒 הכל יחד' }
+      };
+
+      ['weekly', 'monthly', 'all'].forEach(v => {
+        const btn = document.getElementById(`freqBtn-${v}`);
+        if (btn) {
+          btn.className = v === view
+            ? `py-1 px-1.5 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 ${views[v].activeClass}`
+            : 'py-1 px-1.5 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 text-slate-600 hover:text-slate-900';
+        }
+      });
+
+      const cycleTxt = document.getElementById('shopFreqCycleText');
+      if (cycleTxt) cycleTxt.textContent = views[view].shopLabel;
+
+      renderList();
+    }
+
+    function cycleFrequencyView() {
+      const order = ['weekly', 'monthly', 'all'];
+      const nextIdx = (order.indexOf(currentFrequencyView) + 1) % order.length;
+      setFrequencyView(order[nextIdx]);
+    }
+
+    function toggleItemFrequency(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      item.frequency = item.frequency === 'monthly' ? 'weekly' : 'monthly';
+      recordItemInHistory(item, false);
+      saveState();
+      renderList();
+    }
+
+    function toggleItemTag(id, tagKey) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      item.tags[tagKey] = !item.tags[tagKey];
+      recordItemInHistory(item, false);
+      saveState();
+      renderList();
+    }
+
+    // Shopping Mode Actions: Check (Bought) or Mark Missing
+    function toggleItemCheck(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      item.checked = !item.checked;
+      if (item.checked) item.missing = false;
+      saveState();
+      renderList();
+    }
+
+    function toggleItemMissing(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      item.missing = !item.missing;
+      if (item.missing) item.checked = false;
+      saveState();
+      renderList();
+    }
+
+    // Edit Modal (Prep Mode)
+    function openEditModal(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      document.getElementById('editItemId').value = item.id;
+      document.getElementById('editItemName').value = item.name;
+      document.getElementById('editItemQty').value = item.qty || '';
+      document.getElementById('editItemCategory').value = item.category || 'other';
+      document.getElementById('editItemFrequency').value = item.frequency || 'weekly';
+      openModal('editModal');
+    }
+
+    function saveEditedItem() {
+      const id = document.getElementById('editItemId').value;
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      const newName = document.getElementById('editItemName').value.trim();
+      if (newName) item.name = newName;
+      item.qty = document.getElementById('editItemQty').value.trim();
+      item.category = document.getElementById('editItemCategory').value;
+      item.frequency = document.getElementById('editItemFrequency').value;
+
+      // Save the user's manual category & frequency choice into history so future additions remember it
+      recordItemInHistory(item, false);
+
+      closeModal('editModal');
+      saveState();
+      renderList();
+    }
+
+    function deleteItem(id) {
+      items = items.filter(i => i.id !== id);
+      saveState();
+      renderList();
+    }
+
+    // Finish Shopping & Missing Items Resolution Flow
+    function handleFinishShoppingClick() {
+      const todayISO = new Date().toISOString().split('T')[0];
+      const completedLog = [];
+      const scopedMissing = [];
+
+      // Log & remove all bought items in the current view
+      items = items.filter(i => {
+        const inCurrentView = currentFrequencyView === 'all' || i.frequency === currentFrequencyView;
+        if (inCurrentView && i.checked) {
+          recordItemInHistory(i, true);
+          completedLog.push({
+            date: todayISO,
+            name: i.name,
+            category: CATEGORIES[i.category]?.name || 'כללי',
+            frequency: i.frequency,
+            tags: [
+              i.tags?.ella ? 'עבור אלה' : '',
+              i.tags?.pharm ? 'פארם' : '',
+              i.tags?.cat ? 'עבור החתולה' : ''
+            ].filter(Boolean).join(', ')
+          });
+          return false; // Remove bought item from active list
+        }
+        if (inCurrentView && i.missing) {
+          scopedMissing.push(i);
+        }
+        return true;
+      });
+
+      saveState(true);
+      pushStateToCloud(completedLog);
+
+      if (scopedMissing.length > 0) {
+        // Ask user what to do with missing items
+        document.getElementById('missingModalCount').textContent = scopedMissing.length;
+        document.getElementById('missingModalList').innerHTML = scopedMissing
+          .map(m => `<li>• ${escapeHtml(m.name)} ${m.qty ? `(${escapeHtml(m.qty)})` : ''}</li>`)
+          .join('');
+        openModal('missingResolutionModal');
+      } else {
+        alert('🎉 הקנייה הושלמה וכל המוצרים שנקנו תועדו בהצלחה!');
+        setAppMode('prep');
+      }
+      renderList();
+    }
+
+    function resolveMissingItems(decision) {
+      if (decision === 'keep') {
+        // Reset missing flag so they stay on the list for next week
+        items.forEach(i => {
+          const inCurrentView = currentFrequencyView === 'all' || i.frequency === currentFrequencyView;
+          if (inCurrentView && i.missing) {
+            i.missing = false;
+            i.checked = false;
+          }
+        });
+      } else if (decision === 'delete') {
+        // Delete missing items from the list
+        items = items.filter(i => {
+          const inCurrentView = currentFrequencyView === 'all' || i.frequency === currentFrequencyView;
+          return !(inCurrentView && i.missing);
+        });
+      }
+
+      closeModal('missingResolutionModal');
+      saveState();
+      setAppMode('prep');
+    }
+
+    function toggleFilterTag(tag) {
+      activeTagFilters[tag] = !activeTagFilters[tag];
+      const activeCount = Object.values(activeTagFilters).filter(Boolean).length;
+      const modeBtn = document.getElementById('tagMatchModeBtn');
+      modeBtn.classList.toggle('hidden', activeCount <= 1);
+      renderList();
+    }
+
+    function toggleTagMatchMode() {
+      tagMatchMode = tagMatchMode === 'OR' ? 'AND' : 'OR';
+      document.getElementById('tagMatchModeBtn').textContent =
+        tagMatchMode === 'OR' ? 'או (OR)' : 'וגם (AND)';
+      renderList();
+    }
+
+    function getFilteredItems() {
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+      const selectedTags = Object.entries(activeTagFilters).filter(([_, val]) => val).map(([k]) => k);
+
+      return items.filter(item => {
+        if (currentFrequencyView !== 'all' && item.frequency !== currentFrequencyView) return false;
+        if (search && !item.name.toLowerCase().includes(search) && !(item.qty && item.qty.toLowerCase().includes(search))) return false;
+        if (selectedTags.length > 0) {
+          if (tagMatchMode === 'OR') {
+            if (!selectedTags.some(t => item.tags && item.tags[t])) return false;
+          } else {
+            if (!selectedTags.every(t => item.tags && item.tags[t])) return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    // Show only top most-recommended items
+    function renderSmartRecommendations() {
+      const banner = document.getElementById('smartRecommendationsBanner');
+      const chipsContainer = document.getElementById('smartRecommendationsChips');
+
+      const topDueItems = historyItems
+        .filter(h => {
+          const matchesView = currentFrequencyView === 'all' || h.frequency === currentFrequencyView;
+          return matchesView && isItemDueToBuy(h);
+        })
+        .sort((a, b) => getUrgencyScore(b) - getUrgencyScore(a))
+        .slice(0, 5); // Top 5 most recommended
+
+      if (topDueItems.length === 0) {
+        banner.classList.add('hidden');
+        return;
+      }
+
+      banner.classList.remove('hidden');
+      chipsContainer.innerHTML = topDueItems.map(h => {
+        const days = getDaysSince(h.lastBought);
+        return `
+          <button onclick="quickAddByName('${escapeHtml(h.name)}')"
+            class="px-2.5 py-1 rounded-xl bg-white border border-amber-300 text-xs font-bold text-slate-800 hover:bg-amber-100 transition flex items-center gap-1 shadow-sm">
+            <span>+ ${escapeHtml(h.name)}</span>
+            <span class="text-[10px] text-amber-700 font-normal">(${days} ימים)</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function quickAddByName(itemName) {
+      const h = historyItems.find(x => x.name === itemName);
+      if (!h) return;
+      items.unshift({
+        id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+        name: h.name,
+        qty: '',
+        category: h.category || 'other',
+        frequency: h.frequency || 'weekly',
+        checked: false,
+        missing: false,
+        tags: { ...(h.tags || { ella: false, pharm: false, cat: false }) }
+      });
+      saveState();
+      renderList();
+    }
+
+    function renderList() {
+      const weeklyTotal = items.filter(i => i.frequency === 'weekly').length;
+      const monthlyTotal = items.filter(i => i.frequency === 'monthly').length;
+      document.getElementById('count-weekly').textContent = weeklyTotal;
+      document.getElementById('count-monthly').textContent = monthlyTotal;
+      document.getElementById('count-all').textContent = items.length;
+
+      const freqScopedItems = items.filter(i => currentFrequencyView === 'all' || i.frequency === currentFrequencyView);
+      ['ella', 'pharm', 'cat'].forEach(tag => {
+        const count = freqScopedItems.filter(i => i.tags && i.tags[tag]).length;
+        document.getElementById(`tagCount-${tag}`).textContent = count;
+        const btn = document.getElementById(`filterTag-${tag}`);
+        btn.className = activeTagFilters[tag]
+          ? 'px-2.5 py-1 rounded-full text-xs font-bold border border-slate-900 bg-slate-900 text-white transition flex items-center gap-1'
+          : 'px-2.5 py-1 rounded-full text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 transition flex items-center gap-1';
+      });
+
+      if (appMode === 'prep') {
+        renderSmartRecommendations();
+      }
+
+      const filtered = getFilteredItems();
+      const total = filtered.length;
+      const bought = filtered.filter(i => i.checked).length;
+      const missing = filtered.filter(i => i.missing).length;
+      const remaining = Math.max(0, total - bought - missing);
+
+      const boughtPercent = total === 0 ? 0 : Math.round((bought / total) * 100);
+      const missingPercent = total === 0 ? 0 : Math.round((missing / total) * 100);
+
+      document.getElementById('boughtCount').textContent = bought;
+      document.getElementById('missingCount').textContent = missing;
+      document.getElementById('remainingCount').textContent = remaining;
+
+      document.getElementById('progressBarBought').style.width = `${boughtPercent}%`;
+      document.getElementById('progressBarMissing').style.width = `${missingPercent}%`;
+
+      const statusText = document.getElementById('progressStatusText');
+      const finishBtn = document.getElementById('finishShoppingBtn');
+      const finishBtnTxt = document.getElementById('finishShoppingBtnText');
+
+      if (total === 0) {
+        statusText.textContent = 'הרשימה ריקה';
+        finishBtn.disabled = true;
+        finishBtn.className = 'w-full py-2 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center justify-center gap-1.5 bg-slate-200 text-slate-400 cursor-not-allowed';
+        finishBtnTxt.textContent = 'הרשימה ריקה';
+      } else if (remaining === 0) {
+        statusText.textContent = '🎉 כל המוצרים ברשימה טופלו!';
+        finishBtn.disabled = false;
+        finishBtn.className = 'w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 shadow-md animate-pulse';
+        finishBtnTxt.textContent = `סיים קנייה ותעד (${bought} נקנו${missing > 0 ? `, ${missing} חסרים` : ''})`;
+      } else {
+        statusText.textContent = `נותרו עוד ${remaining} מוצרים לאיסוף`;
+        finishBtn.disabled = true;
+        finishBtn.className = 'w-full py-2 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center justify-center gap-1.5 bg-slate-200 text-slate-400 cursor-not-allowed';
+        finishBtnTxt.textContent = `סיים קנייה (נותרו עוד ${remaining} מוצרים)`;
+      }
+
+      const container = document.getElementById('groceriesContainer');
+      container.innerHTML = '';
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-8 text-center border border-slate-200 text-slate-500">
+            <div class="text-3xl mb-2">🛒</div>
+            <div class="font-bold text-slate-700">אין מוצרים בתצוגה הנוכחית</div>
+          </div>
+        `;
+        return;
+      }
+
+      const grouped = {};
+      Object.keys(CATEGORIES).forEach(k => grouped[k] = []);
+      filtered.forEach(item => {
+        const cat = grouped[item.category] ? item.category : 'other';
+        grouped[cat].push(item);
+      });
+
+      const activeCategories = Object.entries(grouped).filter(([_, arr]) => arr.length > 0);
+      if (appMode === 'shop') {
+        activeCategories.sort((a, b) => {
+          const aDone = a[1].every(i => i.checked || i.missing);
+          const bDone = b[1].every(i => i.checked || i.missing);
+          return Number(aDone) - Number(bDone);
+        });
+      }
+
+      activeCategories.forEach(([catKey, catItems]) => {
+        const catMeta = CATEGORIES[catKey];
+        const catHandled = catItems.filter(i => i.checked || i.missing).length;
+
+        if (appMode === 'shop') {
+          catItems.sort((a, b) => Number(a.checked || a.missing) - Number(b.checked || b.missing));
+        }
+
+        const section = document.createElement('section');
+        section.className = 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden';
+
+        section.innerHTML = `
+          <div class="bg-slate-50 px-3.5 py-2 border-b border-slate-200 flex justify-between items-center">
+            <div class="flex items-center gap-1.5 font-extrabold text-xs sm:text-sm text-slate-800">
+              <span>${catMeta.icon}</span>
+              <span>${catMeta.name}</span>
+            </div>
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${appMode === 'shop' && catHandled === catItems.length ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}">
+              ${appMode === 'shop' ? `${catHandled}/${catItems.length}` : catItems.length}
+            </span>
+          </div>
+          <div class="divide-y divide-slate-100">
+            ${catItems.map(item => appMode === 'prep' ? renderPrepItemRow(item) : renderShopItemRow(item)).join('')}
+          </div>
+        `;
+        container.appendChild(section);
+      });
+    }
+
+    // Prep Mode Row: No Checkbox, Icon-Only Frequency, Edit Button
+    function renderPrepItemRow(item) {
+      const freqIconBtn = item.frequency === 'monthly'
+        ? `<button onclick="toggleItemFrequency('${item.id}')" title="קנייה חודשית (לחץ להחלפה לשבועית)" class="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-xs hover:bg-amber-100 transition">📦</button>`
+        : `<button onclick="toggleItemFrequency('${item.id}')" title="קנייה שבועית (לחץ להחלפה לחודשית)" class="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-xs hover:bg-blue-100 transition">📅</button>`;
+
+      return `
+        <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 hover:bg-slate-50/80 transition">
+          <div class="min-w-0 flex-1 cursor-pointer" onclick="openEditModal('${item.id}')">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="font-bold text-sm text-slate-900">
+                ${escapeHtml(item.name)}${item.tags?.ella ? ' <span class="text-purple-700 font-extrabold">(לאלה)</span>' : ''}
+              </span>
+              ${item.qty ? `<span class="text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium">${escapeHtml(item.qty)}</span>` : ''}
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1 shrink-0">
+            ${freqIconBtn}
+            <button onclick="toggleItemTag('${item.id}', 'ella')" title="עבור אלה"
+              class="w-7 h-7 rounded-lg text-xs border transition flex items-center justify-center ${item.tags?.ella ? 'bg-purple-100 border-purple-300' : 'opacity-35 hover:opacity-80 border-transparent'}">💜</button>
+            <button onclick="toggleItemTag('${item.id}', 'pharm')" title="פארם"
+              class="w-7 h-7 rounded-lg text-xs border transition flex items-center justify-center ${item.tags?.pharm ? 'bg-rose-100 border-rose-300' : 'opacity-35 hover:opacity-80 border-transparent'}">💊</button>
+            <button onclick="toggleItemTag('${item.id}', 'cat')" title="עבור החתולה"
+              class="w-7 h-7 rounded-lg text-xs border transition flex items-center justify-center ${item.tags?.cat ? 'bg-amber-100 border-amber-300' : 'opacity-35 hover:opacity-80 border-transparent'}">🐱</button>
+            <button onclick="openEditModal('${item.id}')" title="ערוך כמות או מחלקה" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs flex items-center justify-center">✏️</button>
+            <button onclick="deleteItem('${item.id}')" title="מחק" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 text-xs flex items-center justify-center">🗑️</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Shopping Mode Row: Large Checkbox, No Frequency Badge, "Missing" Button
+    function renderShopItemRow(item) {
+      const nameStyle = item.checked ? 'checked-item' : (item.missing ? 'missing-item' : '');
+      const tagPills = [
+        item.tags?.pharm ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 font-bold">💊 פארם</span>' : '',
+        item.tags?.cat ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-bold">🐱 לחתולה</span>' : ''
+      ].filter(Boolean).join('');
+
+      return `
+        <div class="px-3.5 py-3.5 flex items-center justify-between gap-2.5 ${item.missing ? 'bg-amber-50/40' : 'hover:bg-slate-50/80'} transition">
+          <div class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onclick="toggleItemCheck('${item.id}')">
+            <input type="checkbox" ${item.checked ? 'checked' : ''}
+              class="w-6 h-6 rounded-lg accent-emerald-600 cursor-pointer shrink-0"
+              onclick="event.stopPropagation(); toggleItemCheck('${item.id}')" />
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="font-bold text-base text-slate-900 ${nameStyle}">
+                  ${escapeHtml(item.name)}${item.tags?.ella ? ' <span class="text-purple-700 font-extrabold">(לאלה)</span>' : ''}
+                </span>
+                ${item.qty ? `<span class="text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold">${escapeHtml(item.qty)}</span>` : ''}
+                ${tagPills}
+              </div>
+            </div>
+          </div>
+
+          <button onclick="toggleItemMissing('${item.id}')"
+            class="px-2.5 py-1.5 rounded-xl text-xs font-extrabold border transition shrink-0 ${item.missing ? 'bg-amber-500 text-white border-amber-600 shadow-sm' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-amber-50 hover:text-amber-700'}">
+            ${item.missing ? '⚠️ חסר' : 'חסר?'}
+          </button>
+        </div>
+      `;
+    }
+
+    function openModal(id) {
+      const m = document.getElementById(id);
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      if (id === 'historyModal') renderHistoryModal();
+      if (id === 'exportModal') updateExportPreview();
+    }
+
+    function closeModal(id) {
+      const m = document.getElementById(id);
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function processImport() {
+      const raw = document.getElementById('importTextarea').value;
+      if (!raw.trim()) return;
+
+      const freqChoice = document.querySelector('input[name="importFreq"]:checked').value;
+      const forceElla = document.getElementById('importTagElla').checked;
+      const forcePharm = document.getElementById('importTagPharm').checked;
+      const forceCat = document.getElementById('importTagCat').checked;
+
+      const lines = raw.split(/[\n,]+/).map(s => s.replace(/^[-*•\d.)\s]+/, '').trim()).filter(Boolean);
+
+      lines.forEach(line => {
+        const analysis = analyzeItemText(line);
+        const finalFreq = freqChoice === 'auto' ? analysis.frequency : freqChoice;
+        const newItem = {
+          id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
+          name: line.replace(/\(לאלה\)/g, '').trim(),
+          qty: '',
+          category: analysis.category,
+          frequency: finalFreq,
+          checked: false,
+          missing: false,
+          tags: {
+            ella: forceElla || analysis.tags.ella,
+            pharm: forcePharm || analysis.tags.pharm,
+            cat: forceCat || analysis.tags.cat
+          }
+        };
+        items.unshift(newItem);
+        recordItemInHistory(newItem, false);
+      });
+
+      if (freqChoice === 'weekly' || freqChoice === 'monthly') {
+        currentFrequencyView = freqChoice;
+      }
+
+      document.getElementById('importTextarea').value = '';
+      closeModal('importModal');
+      saveState();
+      setFrequencyView(currentFrequencyView);
+    }
+
+    function renderHistoryModal() {
+      const container = document.getElementById('historyListContainer');
+      const sorted = [...historyItems].sort((a, b) => getUrgencyScore(b) - getUrgencyScore(a));
+
+      container.innerHTML = sorted.map((h) => {
+        const cat = CATEGORIES[h.category] || CATEGORIES.other;
+        const freqText = h.frequency === 'monthly' ? '📦' : '📅';
+        const daysSince = getDaysSince(h.lastBought);
+        const avgDays = h.avgIntervalDays || (h.frequency === 'monthly' ? 28 : 7);
+        const due = isItemDueToBuy(h);
+
+        return `
+          <div class="flex items-center justify-between p-3 rounded-xl border ${due ? 'border-amber-300 bg-amber-50/70' : 'border-slate-200 bg-slate-50'}">
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-sm text-slate-900">${escapeHtml(h.name)}</span>
+                ${due ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-extrabold">💡 מומלץ כעת</span>' : ''}
+              </div>
+              <div class="text-xs text-slate-500">
+                ${cat.icon} ${cat.name} · ${freqText} · כל <b>${avgDays} ימים</b> (נקנה לפני ${daysSince} ימים)
+              </div>
+            </div>
+            <button onclick="quickAddByName('${escapeHtml(h.name)}'); renderHistoryModal();" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shrink-0">
+              + הוסף
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addBulkFromHistory(mode) {
+      let matching = [];
+      if (mode === 'due') {
+        matching = historyItems.filter(h => isItemDueToBuy(h));
+      } else {
+        matching = historyItems.filter(h => h.frequency === mode);
+      }
+
+      matching.forEach(h => {
+        const alreadyExists = items.some(i => i.name === h.name);
+        if (!alreadyExists) {
+          items.push({
+            id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+            name: h.name,
+            qty: '',
+            category: h.category,
+            frequency: h.frequency || 'weekly',
+            checked: false,
+            missing: false,
+            tags: { ...(h.tags || { ella: false, pharm: false, cat: false }) }
+          });
+        }
+      });
+      saveState();
+      closeModal('historyModal');
+      if (mode === 'weekly' || mode === 'monthly') setFrequencyView(mode);
+      else renderList();
+    }
+
+    function updateExportPreview() {
+      const onlyUnchecked = document.getElementById('exportOnlyUnchecked').checked;
+      const groupByCat = document.getElementById('exportGroupByCategory').checked;
+
+      let list = getFilteredItems();
+      if (onlyUnchecked) list = list.filter(i => !i.checked);
+
+      const viewTitle = currentFrequencyView === 'weekly'
+        ? '🛒 *רשימת קנייה שבועית*'
+        : currentFrequencyView === 'monthly'
+          ? '📦 *רשימת קנייה חודשית גדולה*'
+          : '🛒 *רשימת קניות מרוכזת*';
+
+      let lines = [viewTitle, ''];
+
+      if (groupByCat) {
+        Object.entries(CATEGORIES).forEach(([key, cat]) => {
+          const catItems = list.filter(i => i.category === key);
+          if (catItems.length > 0) {
+            lines.push(`${cat.icon} *${cat.name}:*`);
+            catItems.forEach(i => lines.push(`• ${formatItemForExport(i)}`));
+            lines.push('');
+          }
+        });
+      } else {
+        list.forEach(i => lines.push(`• ${formatItemForExport(i)}`));
+      }
+
+      document.getElementById('exportPreviewTextarea').value = lines.join('\n').trim();
+    }
+
+    function formatItemForExport(item) {
+      let str = item.name;
+      if (item.qty) str += ` (${item.qty})`;
+      if (item.tags?.ella) str += ' (לאלה)';
+      if (item.tags?.pharm) str += ' [פארם]';
+      if (item.tags?.cat) str += ' [לחתולה]';
+      if (currentFrequencyView === 'all' && item.frequency === 'monthly') str += ' [חודשית]';
+      return str;
+    }
+
+    function copyExportText() {
+      const textarea = document.getElementById('exportPreviewTextarea');
+      textarea.select();
+      navigator.clipboard.writeText(textarea.value);
+    }
+
+    function shareToWhatsApp() {
+      const text = document.getElementById('exportPreviewTextarea').value;
+      const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    init();
+  </script>
+</body>
+</html>
+```
