@@ -546,7 +546,7 @@
     let newItemTags = { ella: false, pharm: false, cat: false };
     let activeTagFilters = { ella: false, pharm: false, cat: false };
     let tagMatchMode = 'OR';
-    let gasWebAppUrl = localStorage.getItem('smart_groceries_gas_url') || '';
+    let gasWebAppUrl = localStorage.getItem('smart_groceries_gas_url') || 'https://script.google.com/macros/s/AKfycbxe990XEdwBZPDNP_i7XieHt0a-9DIT9yCqQeCNMsXp7iActilqgm_Lwe51zpvMmhXMBw/exec';
 
     function isRunningInsideGoogleAppsScript() {
       return typeof google !== 'undefined' && google.script && google.script.run;
