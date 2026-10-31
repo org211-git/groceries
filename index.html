@@ -439,7 +439,7 @@
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-xs font-bold text-slate-700">כתובת Google Apps Script Web App URL (לחיבור מ-GitHub):</label>
+        <label class="text-xs font-bold text-slate-700">כתובת Google Apps Script Web App URL (מוגדרת כברירת מחדל בקוד):</label>
         <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec"
           class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500" />
       </div>
@@ -457,6 +457,8 @@
   </div>
 
   <script>
+    const DEFAULT_GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxe990XEdwBZPDNP_i7XieHt0a-9DIT9yCqQeCNMsXp7iActilqgm_Lwe51zpvMmhXMBw/exec';
+
     const CATEGORIES = {
       produce: {
         name: 'ירקות ופירות',
@@ -546,7 +548,7 @@
     let newItemTags = { ella: false, pharm: false, cat: false };
     let activeTagFilters = { ella: false, pharm: false, cat: false };
     let tagMatchMode = 'OR';
-    let gasWebAppUrl = localStorage.getItem('smart_groceries_gas_url') || 'https://script.google.com/macros/s/AKfycbxe990XEdwBZPDNP_i7XieHt0a-9DIT9yCqQeCNMsXp7iActilqgm_Lwe51zpvMmhXMBw/exec';
+    let gasWebAppUrl = localStorage.getItem('smart_groceries_gas_url') || DEFAULT_GAS_WEB_APP_URL;
 
     function isRunningInsideGoogleAppsScript() {
       return typeof google !== 'undefined' && google.script && google.script.run;
@@ -707,7 +709,7 @@
     }
 
     function saveCloudConfig() {
-      gasWebAppUrl = document.getElementById('gasUrlInput').value.trim();
+      gasWebAppUrl = document.getElementById('gasUrlInput').value.trim() || DEFAULT_GAS_WEB_APP_URL;
       localStorage.setItem('smart_groceries_gas_url', gasWebAppUrl);
       closeModal('cloudModal');
       if (gasWebAppUrl) syncFromCloudNow();
@@ -1321,12 +1323,17 @@
       `;
     }
 
-    // Shopping Mode Row: Large Checkbox, No Frequency Badge, "Missing" Button
+    // Shopping Mode Row: Large Checkbox, Frequency Badge + Ella/Pharm/Cat Badges, and "Missing" Button
     function renderShopItemRow(item) {
       const nameStyle = item.checked ? 'checked-item' : (item.missing ? 'missing-item' : '');
+      const freqBadge = item.frequency === 'monthly'
+        ? '<span class="text-[11px] px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-bold" title="קנייה חודשית">📦</span>'
+        : '<span class="text-[11px] px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-bold" title="קנייה שבועית">📅</span>';
+
       const tagPills = [
-        item.tags?.pharm ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 font-bold">💊 פארם</span>' : '',
-        item.tags?.cat ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-bold">🐱 לחתולה</span>' : ''
+        item.tags?.ella ? '<span class="text-[11px] px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 border border-purple-300 font-bold" title="עבור אלה">💜 לאלה</span>' : '',
+        item.tags?.pharm ? '<span class="text-[11px] px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-300 font-bold" title="פארם">💊 פארם</span>' : '',
+        item.tags?.cat ? '<span class="text-[11px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-bold" title="עבור החתולה">🐱 לחתולה</span>' : ''
       ].filter(Boolean).join('');
 
       return `
@@ -1338,9 +1345,10 @@
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-1.5">
                 <span class="font-bold text-base text-slate-900 ${nameStyle}">
-                  ${escapeHtml(item.name)}${item.tags?.ella ? ' <span class="text-purple-700 font-extrabold">(לאלה)</span>' : ''}
+                  ${escapeHtml(item.name)}
                 </span>
                 ${item.qty ? `<span class="text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold">${escapeHtml(item.qty)}</span>` : ''}
+                ${freqBadge}
                 ${tagPills}
               </div>
             </div>
