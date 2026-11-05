@@ -1,10 +1,22 @@
-```html
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>סל קניות חכם - הכנה וקנייה</title>
+
+  <!-- Mobile App / PWA Meta Tags -->
+  <meta name="theme-color" content="#059669" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="סל קניות" />
+
+  <!-- Built-in SVG Favicon & App Icons (Dynamic PNG + Manifest generated in JS below for 100% Android support) -->
+  <link id="dynamicFavicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23059669'/%3E%3Ctext x='50' y='68' font-size='56' text-anchor='middle'%3E🛒%3C/text%3E%3C/svg%3E" />
+  <link id="dynamicAppleIcon" rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23059669'/%3E%3Ctext x='50' y='68' font-size='56' text-anchor='middle'%3E🛒%3C/text%3E%3C/svg%3E" />
+  <link id="dynamicManifest" rel="manifest" href="" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
   <style>
@@ -38,9 +50,6 @@
       border-radius: 9999px;
     }
   </style>
-      <!-- PWA Manifest & App Icon for Phone Home Screen -->
-  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22%D7%A1%D7%9C%20%D7%A7%D7%A0%D7%99%D7%95%D7%AA%20%D7%97%D7%9B%D7%9D%22%2C%22short_name%22%3A%22%D7%A1%D7%9C%20%D7%A7%D7%A0%D7%99%D7%95%D7%AA%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f8fafc%22%2C%22theme_color%22%3A%22%2310b981%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fimg.icons8.com%2Fcolor%2F512%2Fshopping-cart.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2png%22%7D%5D%7D">
-  <link rel="apple-touch-icon" href="https://img.icons8.com/color/512/shopping-cart.png">
 </head>
 <body class="mode-prep text-slate-800 pb-28">
 
@@ -375,7 +384,7 @@
       <div class="flex justify-between items-center border-b pb-3">
         <div>
           <h2 class="text-lg font-extrabold text-slate-900">⭐ היסטוריית קניות ותחזית</h2>
-          <p class="text-xs text-slate-500">מחשב כל כמה ימים בממוצע אתה קונה כל מוצר</p>
+          <p class="text-xs text-slate-500">מחשב כל כמה ימים בממוצע אתה קונה כל מוצר (ניתן להסיר מוצרים חד-פעמיים מהמעקב)</p>
         </div>
         <button onclick="closeModal('historyModal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
       </div>
@@ -462,6 +471,72 @@
   <script>
     const DEFAULT_GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxe990XEdwBZPDNP_i7XieHt0a-9DIT9yCqQeCNMsXp7iActilqgm_Lwe51zpvMmhXMBw/exec';
 
+    // Generate high-res PNG shopping cart icon + Web App Manifest in-memory so Android/iOS always display the cart icon
+    function setupAppIconAndManifest() {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+
+        // Emerald rounded background
+        ctx.fillStyle = '#059669';
+        ctx.beginPath();
+        ctx.roundRect(0, 0, 512, 512, 115);
+        ctx.fill();
+
+        // Subtle inner highlight circle
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+        ctx.beginPath();
+        ctx.arc(256, 256, 190, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Shopping cart emoji
+        ctx.font = '270px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🛒', 256, 272);
+
+        const pngDataUrl = canvas.toDataURL('image/png');
+
+        const fav = document.getElementById('dynamicFavicon');
+        if (fav) {
+          fav.type = 'image/png';
+          fav.href = pngDataUrl;
+        }
+        const appleIcon = document.getElementById('dynamicAppleIcon');
+        if (appleIcon) {
+          appleIcon.href = pngDataUrl;
+        }
+
+        const manifestObj = {
+          name: 'סל קניות חכם',
+          short_name: 'סל קניות',
+          description: 'רשימת קניות חכמה לשבועית וחודשית',
+          start_url: window.location.href.split('#')[0],
+          display: 'standalone',
+          orientation: 'portrait',
+          background_color: '#f8fafc',
+          theme_color: '#059669',
+          dir: 'rtl',
+          lang: 'he',
+          icons: [
+            { src: pngDataUrl, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+            { src: pngDataUrl, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          ]
+        };
+
+        const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+        const manifestUrl = URL.createObjectURL(manifestBlob);
+        const manifestLink = document.getElementById('dynamicManifest');
+        if (manifestLink) {
+          manifestLink.href = manifestUrl;
+        }
+      } catch (e) {
+        console.warn('Icon generation fallback used:', e);
+      }
+    }
+
     const CATEGORIES = {
       produce: {
         name: 'ירקות ופירות',
@@ -545,6 +620,7 @@
     // State
     let items = [];
     let historyItems = [];
+    let ignoredPredictionNames = []; // Items removed from prediction/tracking (e.g. one-time purchases)
     let appMode = 'prep'; // 'prep' (default) | 'shop'
     let currentFrequencyView = 'weekly'; // 'weekly' | 'monthly' | 'all'
     let newItemFrequency = 'auto';
@@ -572,6 +648,7 @@
     }
 
     function init() {
+      setupAppIconAndManifest();
       populateCategorySelects();
       document.getElementById('gasUrlInput').value = gasWebAppUrl;
       loadState();
@@ -604,6 +681,11 @@
     function loadState() {
       const savedItems = localStorage.getItem('smart_groceries_items_v4') || localStorage.getItem('smart_groceries_items_v3');
       const savedHistory = localStorage.getItem('smart_groceries_history_v4') || localStorage.getItem('smart_groceries_history_v3');
+      const savedIgnored = localStorage.getItem('smart_groceries_ignored_predictions_v1');
+
+      if (savedIgnored) {
+        try { ignoredPredictionNames = JSON.parse(savedIgnored); } catch (_) { ignoredPredictionNames = []; }
+      }
 
       if (savedItems) {
         items = JSON.parse(savedItems).map(i => ({ ...i, missing: Boolean(i.missing) }));
@@ -634,9 +716,28 @@
     function saveState(skipCloudPush = false) {
       localStorage.setItem('smart_groceries_items_v4', JSON.stringify(items));
       localStorage.setItem('smart_groceries_history_v4', JSON.stringify(historyItems));
+      localStorage.setItem('smart_groceries_ignored_predictions_v1', JSON.stringify(ignoredPredictionNames));
       if (!skipCloudPush) {
         pushStateToCloud();
       }
+    }
+
+    function isIgnoredFromPredictions(name) {
+      if (!name) return false;
+      const norm = name.trim().toLowerCase();
+      return ignoredPredictionNames.some(n => n.trim().toLowerCase() === norm);
+    }
+
+    // Remove item from predictions & stop tracking its purchase interval
+    function removeHistoryItemFromPredictions(itemName) {
+      const norm = itemName.trim().toLowerCase();
+      historyItems = historyItems.filter(h => h.name.trim().toLowerCase() !== norm);
+      if (!isIgnoredFromPredictions(itemName)) {
+        ignoredPredictionNames.push(itemName.trim());
+      }
+      saveState();
+      renderHistoryModal();
+      renderList();
     }
 
     // Mode Switching ('prep' vs 'shop')
@@ -682,8 +783,9 @@
       if (res && Array.isArray(res.items)) {
         items = res.items.map(i => ({ ...i, missing: Boolean(i.missing) }));
       }
-      if (res && Array.isArray(res.historyItems) && res.historyItems.length > 0) {
-        historyItems = res.historyItems;
+      if (res && Array.isArray(res.historyItems)) {
+        // Filter out items the user explicitly removed from predictions
+        historyItems = res.historyItems.filter(h => !isIgnoredFromPredictions(h.name));
       }
       saveState(true);
       renderList();
@@ -726,6 +828,7 @@
     }
 
     function getUrgencyScore(hItem) {
+      if (isIgnoredFromPredictions(hItem.name)) return -1;
       const alreadyInCart = items.some(i => i.name.trim() === hItem.name.trim());
       if (alreadyInCart) return -1;
       const daysSince = getDaysSince(hItem.lastBought);
@@ -743,14 +846,12 @@
       const normalized = cleanText.replace(/\(לאלה\)/g, '').trim().toLowerCase();
       if (!normalized) return null;
 
-      // 1. Exact match in historyItems or current items
       const exactHist = historyItems.find(h => h.name.trim().toLowerCase() === normalized);
       if (exactHist) return exactHist;
 
       const exactActive = items.find(i => i.name.trim().toLowerCase() === normalized);
       if (exactActive) return exactActive;
 
-      // 2. Partial match in historyItems (if the saved product name is contained in the input or vice-versa, min 3 chars)
       const partialHist = historyItems.find(h => {
         const hName = h.name.trim().toLowerCase();
         return hName.length >= 3 && (normalized.includes(hName) || hName.includes(normalized));
@@ -775,7 +876,6 @@
         detectedTags.cat = detectedTags.cat || Boolean(savedMatch.tags.cat);
       }
 
-      // 1. If previously saved with a specific non-'other' category, prioritize user's saved choice
       let matchedCategory = null;
       let matchedFromHistory = false;
 
@@ -784,7 +884,6 @@
         matchedFromHistory = true;
       }
 
-      // 2. Otherwise, check keyword dictionary
       if (!matchedCategory) {
         for (const [catKey, catData] of Object.entries(CATEGORIES)) {
           if (catData.keywords.some(kw => text.includes(kw))) {
@@ -794,7 +893,6 @@
         }
       }
 
-      // 3. If still not recognized by keywords, check if it was saved in history (even as 'other'), otherwise default to 'other' (כללי)
       if (!matchedCategory) {
         if (savedMatch && savedMatch.category && CATEGORIES[savedMatch.category]) {
           matchedCategory = savedMatch.category;
@@ -896,6 +994,9 @@
     }
 
     function recordItemInHistory(item, isCompletedPurchase = false) {
+      // Do not track or re-add items that the user explicitly removed from predictions (one-time purchases)
+      if (isIgnoredFromPredictions(item.name)) return;
+
       const todayISO = new Date().toISOString().split('T')[0];
       const existing = historyItems.find(h => h.name.trim().toLowerCase() === item.name.trim().toLowerCase());
       const defaultInterval = CATEGORIES[item.category]?.defaultIntervalDays || (item.frequency === 'monthly' ? 28 : 7);
@@ -1013,7 +1114,6 @@
       item.category = document.getElementById('editItemCategory').value;
       item.frequency = document.getElementById('editItemFrequency').value;
 
-      // Save the user's manual category & frequency choice into history so future additions remember it
       recordItemInHistory(item, false);
 
       closeModal('editModal');
@@ -1033,7 +1133,6 @@
       const completedLog = [];
       const scopedMissing = [];
 
-      // Log & remove all bought items in the current view
       items = items.filter(i => {
         const inCurrentView = currentFrequencyView === 'all' || i.frequency === currentFrequencyView;
         if (inCurrentView && i.checked) {
@@ -1049,7 +1148,7 @@
               i.tags?.cat ? 'עבור החתולה' : ''
             ].filter(Boolean).join(', ')
           });
-          return false; // Remove bought item from active list
+          return false;
         }
         if (inCurrentView && i.missing) {
           scopedMissing.push(i);
@@ -1061,7 +1160,6 @@
       pushStateToCloud(completedLog);
 
       if (scopedMissing.length > 0) {
-        // Ask user what to do with missing items
         document.getElementById('missingModalCount').textContent = scopedMissing.length;
         document.getElementById('missingModalList').innerHTML = scopedMissing
           .map(m => `<li>• ${escapeHtml(m.name)} ${m.qty ? `(${escapeHtml(m.qty)})` : ''}</li>`)
@@ -1076,7 +1174,6 @@
 
     function resolveMissingItems(decision) {
       if (decision === 'keep') {
-        // Reset missing flag so they stay on the list for next week
         items.forEach(i => {
           const inCurrentView = currentFrequencyView === 'all' || i.frequency === currentFrequencyView;
           if (inCurrentView && i.missing) {
@@ -1085,7 +1182,6 @@
           }
         });
       } else if (decision === 'delete') {
-        // Delete missing items from the list
         items = items.filter(i => {
           const inCurrentView = currentFrequencyView === 'all' || i.frequency === currentFrequencyView;
           return !(inCurrentView && i.missing);
@@ -1137,11 +1233,12 @@
 
       const topDueItems = historyItems
         .filter(h => {
+          if (isIgnoredFromPredictions(h.name)) return false;
           const matchesView = currentFrequencyView === 'all' || h.frequency === currentFrequencyView;
           return matchesView && isItemDueToBuy(h);
         })
         .sort((a, b) => getUrgencyScore(b) - getUrgencyScore(a))
-        .slice(0, 5); // Top 5 most recommended
+        .slice(0, 5);
 
       if (topDueItems.length === 0) {
         banner.classList.add('hidden');
@@ -1149,16 +1246,45 @@
       }
 
       banner.classList.remove('hidden');
-      chipsContainer.innerHTML = topDueItems.map(h => {
+      chipsContainer.innerHTML = topDueItems.map((h, idx) => {
         const days = getDaysSince(h.lastBought);
         return `
-          <button onclick="quickAddByName('${escapeHtml(h.name)}')"
-            class="px-2.5 py-1 rounded-xl bg-white border border-amber-300 text-xs font-bold text-slate-800 hover:bg-amber-100 transition flex items-center gap-1 shadow-sm">
-            <span>+ ${escapeHtml(h.name)}</span>
-            <span class="text-[10px] text-amber-700 font-normal">(${days} ימים)</span>
-          </button>
+          <div class="inline-flex items-center rounded-xl bg-white border border-amber-300 shadow-sm overflow-hidden">
+            <button onclick="quickAddByNameIndex(${idx})"
+              class="px-2.5 py-1 text-xs font-bold text-slate-800 hover:bg-amber-100 transition flex items-center gap-1">
+              <span>+ ${escapeHtml(h.name)}</span>
+              <span class="text-[10px] text-amber-700 font-normal">(${days} ימים)</span>
+            </button>
+            <button onclick="removeTopRecommendationByIndex(${idx})" title="הסר מתחזית (קנייה חד-פעמית)"
+              class="px-1.5 py-1 text-[10px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 border-r border-amber-200 transition">
+              ✕
+            </button>
+          </div>
         `;
       }).join('');
+    }
+
+    function getTopDueItemsList() {
+      return historyItems
+        .filter(h => {
+          if (isIgnoredFromPredictions(h.name)) return false;
+          const matchesView = currentFrequencyView === 'all' || h.frequency === currentFrequencyView;
+          return matchesView && isItemDueToBuy(h);
+        })
+        .sort((a, b) => getUrgencyScore(b) - getUrgencyScore(a))
+        .slice(0, 5);
+    }
+
+    function quickAddByNameIndex(idx) {
+      const topDue = getTopDueItemsList();
+      const h = topDue[idx];
+      if (h) quickAddByName(h.name);
+    }
+
+    function removeTopRecommendationByIndex(idx) {
+      const topDue = getTopDueItemsList();
+      const h = topDue[idx];
+      if (h) removeHistoryItemFromPredictions(h.name);
     }
 
     function quickAddByName(itemName) {
@@ -1421,11 +1547,22 @@
       setFrequencyView(currentFrequencyView);
     }
 
+    function getSortedTrackedHistoryItems() {
+      return [...historyItems]
+        .filter(h => !isIgnoredFromPredictions(h.name))
+        .sort((a, b) => getUrgencyScore(b) - getUrgencyScore(a));
+    }
+
     function renderHistoryModal() {
       const container = document.getElementById('historyListContainer');
-      const sorted = [...historyItems].sort((a, b) => getUrgencyScore(b) - getUrgencyScore(a));
+      const sorted = getSortedTrackedHistoryItems();
 
-      container.innerHTML = sorted.map((h) => {
+      if (sorted.length === 0) {
+        container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400">אין מוצרים במעקב תחזית כרגע.</div>`;
+        return;
+      }
+
+      container.innerHTML = sorted.map((h, idx) => {
         const cat = CATEGORIES[h.category] || CATEGORIES.other;
         const freqText = h.frequency === 'monthly' ? '📦' : '📅';
         const daysSince = getDaysSince(h.lastBought);
@@ -1433,9 +1570,9 @@
         const due = isItemDueToBuy(h);
 
         return `
-          <div class="flex items-center justify-between p-3 rounded-xl border ${due ? 'border-amber-300 bg-amber-50/70' : 'border-slate-200 bg-slate-50'}">
-            <div class="space-y-0.5">
-              <div class="flex items-center gap-2">
+          <div class="flex items-center justify-between gap-2 p-3 rounded-xl border ${due ? 'border-amber-300 bg-amber-50/70' : 'border-slate-200 bg-slate-50'}">
+            <div class="space-y-0.5 min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
                 <span class="font-bold text-sm text-slate-900">${escapeHtml(h.name)}</span>
                 ${due ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-extrabold">💡 מומלץ כעת</span>' : ''}
               </div>
@@ -1443,20 +1580,41 @@
                 ${cat.icon} ${cat.name} · ${freqText} · כל <b>${avgDays} ימים</b> (נקנה לפני ${daysSince} ימים)
               </div>
             </div>
-            <button onclick="quickAddByName('${escapeHtml(h.name)}'); renderHistoryModal();" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shrink-0">
-              + הוסף
-            </button>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="addHistoryModalItemByIndex(${idx})" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700">
+                + הוסף
+              </button>
+              <button onclick="removeHistoryModalItemByIndex(${idx})" title="הסר מתחזית והפסק מעקב תדירות (קנייה חד-פעמית)"
+                class="px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold hover:bg-rose-100 transition">
+                🗑️ הסר ממעקב
+              </button>
+            </div>
           </div>
         `;
       }).join('');
     }
 
+    function addHistoryModalItemByIndex(idx) {
+      const sorted = getSortedTrackedHistoryItems();
+      const h = sorted[idx];
+      if (!h) return;
+      quickAddByName(h.name);
+      renderHistoryModal();
+    }
+
+    function removeHistoryModalItemByIndex(idx) {
+      const sorted = getSortedTrackedHistoryItems();
+      const h = sorted[idx];
+      if (!h) return;
+      removeHistoryItemFromPredictions(h.name);
+    }
+
     function addBulkFromHistory(mode) {
       let matching = [];
       if (mode === 'due') {
-        matching = historyItems.filter(h => isItemDueToBuy(h));
+        matching = historyItems.filter(h => !isIgnoredFromPredictions(h.name) && isItemDueToBuy(h));
       } else {
-        matching = historyItems.filter(h => h.frequency === mode);
+        matching = historyItems.filter(h => !isIgnoredFromPredictions(h.name) && h.frequency === mode);
       }
 
       matching.forEach(h => {
@@ -1543,4 +1701,3 @@
   </script>
 </body>
 </html>
-```
