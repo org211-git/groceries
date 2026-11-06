@@ -12,6 +12,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="סל קניות" />
 
+  <!-- Real Web App Manifest for Android Chrome True PWA Installation -->
+  <link rel="manifest" href="manifest.json" />
+
   <!-- Transparent Shopping Cart Vector Icon (No background color) -->
   <link id="dynamicFavicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Cg fill='none' stroke='%23059669' stroke-width='10' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h18l16 62h54l14-44H34'/%3E%3Ccircle cx='50' cy='104' r='10' fill='%23059669'/%3E%3Ccircle cx='94' cy='104' r='10' fill='%23059669'/%3E%3C/g%3E%3C/svg%3E" />
   <link id="dynamicAppleIcon" rel="apple-touch-icon" href="" />
@@ -87,6 +90,9 @@
 
         <!-- Prep-Only Top Utility Buttons -->
         <div class="prep-only flex items-center gap-1">
+          <button id="installPwaBtn" onclick="triggerPwaInstall()" class="hidden px-2 py-1.5 rounded-lg text-xs font-extrabold bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm" title="התקן כאפליקציה">
+            📲 התקן
+          </button>
           <button onclick="openModal('importModal')" class="px-2 py-1.5 rounded-lg text-xs font-bold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition" title="ייבוא מוואטסאפ">
             📥 ייבוא
           </button>
@@ -172,7 +178,7 @@
     <section class="prep-only bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200">
       <form id="addItemForm" onsubmit="handleAddItem(event)" class="space-y-2.5">
         <div class="flex flex-col sm:flex-row gap-2">
-          <input type="text" id="itemNameInput" placeholder="הוסף מוצר (למשל: עגבניות, חלב, אקונומיקה...)" required
+          <input type="text" id="itemNameInput" placeholder="הוסף מוצר (למשל: 2 חלב (דל לקטוז), עגבניות...)" required
             class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             oninput="previewAutoCategory(this.value)" />
           <div class="flex gap-2">
@@ -330,8 +336,11 @@
         <h2 class="text-lg font-extrabold text-slate-900">📥 ייבוא רשימה מוואטסאפ</h2>
         <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
       </div>
-      <p class="text-xs text-slate-600">הדבק כאן הודעת וואטסאפ או רשימת מוצרים (כל מוצר בשורה חדשה או מופרד בפסיקים):</p>
-      <textarea id="importTextarea" rows="5" placeholder="למשל:&#10;חלב 3%&#10;2 קוטג'&#10;עגבניות&#10;אקונומיקה"
+      <p class="text-xs text-slate-600 leading-relaxed">
+        הדבק רשימת מוצרים (כל מוצר בשורה או מופרד בפסיק).<br/>
+        💡 <b>טיפ חכם:</b> מספר לפני המוצר יזוהה ככמות, וטקסט בסוגריים יזוהה כהערה! (למשל: <code>2 חלב 3% (קרטון)</code>).
+      </p>
+      <textarea id="importTextarea" rows="5" placeholder="למשל:&#10;2 חלב 3% (בקרטון)&#10;3 קוטג'&#10;עגבניות (קשות לסלט)&#10;אקונומיקה"
         class="w-full rounded-xl border border-slate-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
 
       <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
@@ -383,7 +392,7 @@
       <div class="flex justify-between items-center border-b pb-3">
         <div>
           <h2 class="text-lg font-extrabold text-slate-900">⭐ היסטוריית קניות ותחזית</h2>
-          <p class="text-xs text-slate-500">מחשב כל כמה ימים בממוצע אתה קונה כל מוצר (ניתן להסיר מוצרים חד-פעמיים מהמעקב)</p>
+          <p class="text-xs text-slate-500">מחשב כל כמה ימים בממוצע אתה קונה כל מוצר (ניתן לסמן 💜 לאלה או להסיר מוצרים חד-פעמיים)</p>
         </div>
         <button onclick="closeModal('historyModal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
       </div>
@@ -470,6 +479,25 @@
   <script>
     const DEFAULT_GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxe990XEdwBZPDNP_i7XieHt0a-9DIT9yCqQeCNMsXp7iActilqgm_Lwe51zpvMmhXMBw/exec';
 
+    let deferredPwaPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPwaPrompt = e;
+      const btn = document.getElementById('installPwaBtn');
+      if (btn) btn.classList.remove('hidden');
+    });
+
+    function triggerPwaInstall() {
+      if (!deferredPwaPrompt) return;
+      deferredPwaPrompt.prompt();
+      deferredPwaPrompt.userChoice.then(() => {
+        deferredPwaPrompt = null;
+        const btn = document.getElementById('installPwaBtn');
+        if (btn) btn.classList.add('hidden');
+      });
+    }
+
     // Generate a crisp vector shopping cart PNG on a completely transparent background
     function setupAppIconAndManifest() {
       try {
@@ -478,17 +506,14 @@
         canvas.height = 512;
         const ctx = canvas.getContext('2d');
 
-        // Clear canvas - 100% transparent background (no box behind the cart)
         ctx.clearRect(0, 0, 512, 512);
 
-        // Draw shopping cart using vector paths so it never fails to render on Android
-        ctx.strokeStyle = '#059669'; // Emerald green cart lines
+        ctx.strokeStyle = '#059669';
         ctx.fillStyle = '#059669';
         ctx.lineWidth = 38;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        // Cart handle + basket body
         ctx.beginPath();
         ctx.moveTo(48, 88);
         ctx.lineTo(116, 88);
@@ -498,7 +523,6 @@
         ctx.lineTo(142, 164);
         ctx.stroke();
 
-        // Inner basket grid lines for a nice shopping cart look
         ctx.lineWidth = 22;
         ctx.beginPath();
         ctx.moveTo(235, 164);
@@ -509,12 +533,10 @@
         ctx.lineTo(435, 250);
         ctx.stroke();
 
-        // Left wheel
         ctx.beginPath();
         ctx.arc(210, 420, 42, 0, Math.PI * 2);
         ctx.fill();
 
-        // Right wheel
         ctx.beginPath();
         ctx.arc(380, 420, 42, 0, Math.PI * 2);
         ctx.fill();
@@ -618,9 +640,9 @@
     // State
     let items = [];
     let historyItems = [];
-    let ignoredPredictionNames = []; // Items removed from prediction/tracking (e.g. one-time purchases)
-    let appMode = 'prep'; // 'prep' (default) | 'shop'
-    let currentFrequencyView = 'weekly'; // 'weekly' | 'monthly' | 'all'
+    let ignoredPredictionNames = [];
+    let appMode = 'prep';
+    let currentFrequencyView = 'weekly';
     let newItemFrequency = 'auto';
     let newItemTags = { ella: false, pharm: false, cat: false };
     let activeTagFilters = { ella: false, pharm: false, cat: false };
@@ -726,7 +748,6 @@
       return ignoredPredictionNames.some(n => n.trim().toLowerCase() === norm);
     }
 
-    // Remove item from predictions & stop tracking its purchase interval
     function removeHistoryItemFromPredictions(itemName) {
       const norm = itemName.trim().toLowerCase();
       historyItems = historyItems.filter(h => h.name.trim().toLowerCase() !== norm);
@@ -738,7 +759,46 @@
       renderList();
     }
 
-    // Mode Switching ('prep' vs 'shop')
+    // Parse leading number as quantity and text in parentheses as note
+    // e.g., "2 חלב 3% (בקרטון)" -> { name: "חלב 3%", qty: "2 · בקרטון", hadEllaTag: false }
+    function parseProductLine(rawLine) {
+      let str = String(rawLine || '').trim();
+      let hadEllaTag = false;
+
+      if (/\(\s*לאלה\s*\)/.test(str) || /\(\s*עבור אלה\s*\)/.test(str)) {
+        hadEllaTag = true;
+        str = str.replace(/\(\s*(?:לאלה|עבור אלה)\s*\)/g, '').trim();
+      }
+
+      const notes = [];
+      str = str.replace(/\(([^)]+)\)/g, (_, inner) => {
+        const cleanInner = inner.trim();
+        if (cleanInner) notes.push(cleanInner);
+        return ' ';
+      }).replace(/\s+/g, ' ').trim();
+
+      let leadingQty = '';
+      // Match leading number (e.g. "2 חלב", "1.5 עגבניות", "3 יח' קוטג'")
+      const qtyMatch = str.match(/^(\d+(?:[.,]\d+)?(?:\s*(?:יח'|יח׳|יחידות|ק"ג|קג|גרם|ליטר|מארז|קרטון|קרטונים|שקיות|חבילות))?)\s+(.+)$/);
+      if (qtyMatch) {
+        // Avoid treating "3% חלב" as quantity 3%
+        if (!qtyMatch[1].includes('%')) {
+          leadingQty = qtyMatch[1].trim();
+          str = qtyMatch[2].trim();
+        }
+      }
+
+      const combinedQtyParts = [];
+      if (leadingQty) combinedQtyParts.push(leadingQty);
+      if (notes.length > 0) combinedQtyParts.push(notes.join(', '));
+
+      return {
+        name: str || rawLine.trim(),
+        qty: combinedQtyParts.join(' · '),
+        hadEllaTag
+      };
+    }
+
     function setAppMode(mode) {
       appMode = mode;
       document.body.classList.toggle('mode-prep', mode === 'prep');
@@ -758,7 +818,6 @@
       renderList();
     }
 
-    // Cloud Sync Functions
     function syncFromCloudNow(silent = false) {
       if (isRunningInsideGoogleAppsScript()) {
         updateSyncBadge('syncing', 'טוען מענן...');
@@ -782,7 +841,6 @@
         items = res.items.map(i => ({ ...i, missing: Boolean(i.missing) }));
       }
       if (res && Array.isArray(res.historyItems)) {
-        // Filter out items the user explicitly removed from predictions
         historyItems = res.historyItems.filter(h => !isIgnoredFromPredictions(h.name));
       }
       saveState(true);
@@ -818,7 +876,6 @@
       if (gasWebAppUrl) syncFromCloudNow();
     }
 
-    // Frequency & Smart Interval Prediction Logic
     function getDaysSince(dateStr) {
       if (!dateStr) return 999;
       const diff = Date.now() - new Date(dateStr).getTime();
@@ -838,7 +895,6 @@
       return getUrgencyScore(hItem) >= 1.0;
     }
 
-    // Helper: Look up previously saved item in history or active list
     function findPreviouslySavedItem(cleanText) {
       if (!cleanText) return null;
       const normalized = cleanText.replace(/\(לאלה\)/g, '').trim().toLowerCase();
@@ -860,12 +916,13 @@
     }
 
     function analyzeItemText(rawText) {
-      let text = rawText.trim();
-      let detectedTags = { ella: false, pharm: false, cat: false };
+      const parsed = parseProductLine(rawText);
+      let text = parsed.name;
+      let detectedTags = { ella: parsed.hadEllaTag, pharm: false, cat: false };
 
-      if (text.includes('אלה') || text.includes('(לאלה)')) detectedTags.ella = true;
-      if (text.includes('פארם') || text.includes('סופר פארם')) detectedTags.pharm = true;
-      if (text.includes('חתול') || text.includes('פיצי')) detectedTags.cat = true;
+      if (rawText.includes('אלה') || rawText.includes('(לאלה)')) detectedTags.ella = true;
+      if (rawText.includes('פארם') || rawText.includes('סופר פארם')) detectedTags.pharm = true;
+      if (rawText.includes('חתול') || rawText.includes('פיצי')) detectedTags.cat = true;
 
       const savedMatch = findPreviouslySavedItem(text);
       if (savedMatch && savedMatch.tags) {
@@ -907,9 +964,16 @@
         ? savedMatch.frequency
         : (CATEGORIES[matchedCategory]?.defaultFreq || 'weekly');
 
-      if (text.includes('חודשי') || text.includes('מארז')) defaultFreq = 'monthly';
+      if (rawText.includes('חודשי') || rawText.includes('מארז')) defaultFreq = 'monthly';
 
-      return { category: matchedCategory, frequency: defaultFreq, tags: detectedTags, matchedFromHistory };
+      return {
+        parsedName: parsed.name,
+        parsedQty: parsed.qty,
+        category: matchedCategory,
+        frequency: defaultFreq,
+        tags: detectedTags,
+        matchedFromHistory
+      };
     }
 
     function previewAutoCategory(val) {
@@ -922,7 +986,8 @@
       const cat = CATEGORIES[analysis.category];
       const freqIcon = (newItemFrequency === 'auto' ? analysis.frequency : newItemFrequency) === 'monthly' ? '📦 חודשית' : '📅 שבועית';
       const sourceBadge = analysis.matchedFromHistory ? ' <span class="text-emerald-700 font-semibold">(זכור מהיסטוריית קניות ⭐)</span>' : '';
-      previewEl.innerHTML = `סיווג אוטומטי: <b>${cat.icon} ${cat.name}</b> · <b>${freqIcon}</b>${sourceBadge}`;
+      const qtyPreview = analysis.parsedQty ? ` · כמות/הערה: <b>${escapeHtml(analysis.parsedQty)}</b>` : '';
+      previewEl.innerHTML = `סיווג אוטומטי: <b>${cat.icon} ${cat.name}</b> · <b>${freqIcon}</b>${qtyPreview}${sourceBadge}`;
       previewEl.classList.remove('hidden');
     }
 
@@ -953,10 +1018,10 @@
       const qtyInput = document.getElementById('itemQtyInput');
       const catSelect = document.getElementById('itemCategorySelect');
 
-      const name = nameInput.value.trim();
-      if (!name) return;
+      const rawName = nameInput.value.trim();
+      if (!rawName) return;
 
-      const analysis = analyzeItemText(name);
+      const analysis = analyzeItemText(rawName);
       const chosenCategory = catSelect.value === 'auto' ? analysis.category : catSelect.value;
       const chosenFreq = newItemFrequency === 'auto'
         ? (analysis.matchedFromHistory ? analysis.frequency : (CATEGORIES[chosenCategory]?.defaultFreq || analysis.frequency))
@@ -968,10 +1033,13 @@
         cat: newItemTags.cat || analysis.tags.cat || chosenCategory === 'pets'
       };
 
+      const manualQty = qtyInput.value.trim();
+      const combinedQty = [analysis.parsedQty, manualQty].filter(Boolean).join(' · ');
+
       const newItem = {
         id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
-        name,
-        qty: qtyInput.value.trim(),
+        name: analysis.parsedName,
+        qty: combinedQty,
         category: chosenCategory,
         frequency: chosenFreq,
         checked: false,
@@ -992,7 +1060,6 @@
     }
 
     function recordItemInHistory(item, isCompletedPurchase = false) {
-      // Do not track or re-add items that the user explicitly removed from predictions (one-time purchases)
       if (isIgnoredFromPredictions(item.name)) return;
 
       const todayISO = new Date().toISOString().split('T')[0];
@@ -1071,7 +1138,6 @@
       renderList();
     }
 
-    // Shopping Mode Actions: Check (Bought) or Mark Missing
     function toggleItemCheck(id) {
       const item = items.find(i => i.id === id);
       if (!item) return;
@@ -1090,7 +1156,6 @@
       renderList();
     }
 
-    // Edit Modal (Prep Mode)
     function openEditModal(id) {
       const item = items.find(i => i.id === id);
       if (!item) return;
@@ -1125,7 +1190,6 @@
       renderList();
     }
 
-    // Finish Shopping & Missing Items Resolution Flow
     function handleFinishShoppingClick() {
       const todayISO = new Date().toISOString().split('T')[0];
       const completedLog = [];
@@ -1224,19 +1288,11 @@
       });
     }
 
-    // Show only top most-recommended items
     function renderSmartRecommendations() {
       const banner = document.getElementById('smartRecommendationsBanner');
       const chipsContainer = document.getElementById('smartRecommendationsChips');
 
-      const topDueItems = historyItems
-        .filter(h => {
-          if (isIgnoredFromPredictions(h.name)) return false;
-          const matchesView = currentFrequencyView === 'all' || h.frequency === currentFrequencyView;
-          return matchesView && isItemDueToBuy(h);
-        })
-        .sort((a, b) => getUrgencyScore(b) - getUrgencyScore(a))
-        .slice(0, 5);
+      const topDueItems = getTopDueItemsList();
 
       if (topDueItems.length === 0) {
         banner.classList.add('hidden');
@@ -1246,11 +1302,12 @@
       banner.classList.remove('hidden');
       chipsContainer.innerHTML = topDueItems.map((h, idx) => {
         const days = getDaysSince(h.lastBought);
+        const ellaBadge = h.tags?.ella ? ' <span class="text-purple-700 font-extrabold">(לאלה 💜)</span>' : '';
         return `
           <div class="inline-flex items-center rounded-xl bg-white border border-amber-300 shadow-sm overflow-hidden">
             <button onclick="quickAddByNameIndex(${idx})"
               class="px-2.5 py-1 text-xs font-bold text-slate-800 hover:bg-amber-100 transition flex items-center gap-1">
-              <span>+ ${escapeHtml(h.name)}</span>
+              <span>+ ${escapeHtml(h.name)}${ellaBadge}</span>
               <span class="text-[10px] text-amber-700 font-normal">(${days} ימים)</span>
             </button>
             <button onclick="removeTopRecommendationByIndex(${idx})" title="הסר מתחזית (קנייה חד-פעמית)"
@@ -1418,7 +1475,6 @@
       });
     }
 
-    // Prep Mode Row: No Checkbox, Icon-Only Frequency, Edit Button
     function renderPrepItemRow(item) {
       const freqIconBtn = item.frequency === 'monthly'
         ? `<button onclick="toggleItemFrequency('${item.id}')" title="קנייה חודשית (לחץ להחלפה לשבועית)" class="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-xs hover:bg-amber-100 transition">📦</button>`
@@ -1450,7 +1506,6 @@
       `;
     }
 
-    // Shopping Mode Row: Large Checkbox, Frequency Badge + Ella/Pharm/Cat Badges, and "Missing" Button
     function renderShopItemRow(item) {
       const nameStyle = item.checked ? 'checked-item' : (item.missing ? 'missing-item' : '');
       const freqBadge = item.frequency === 'monthly'
@@ -1512,15 +1567,19 @@
       const forcePharm = document.getElementById('importTagPharm').checked;
       const forceCat = document.getElementById('importTagCat').checked;
 
-      const lines = raw.split(/[\n,]+/).map(s => s.replace(/^[-*•\d.)\s]+/, '').trim()).filter(Boolean);
+      // Clean bullet symbols (*, -, •) or numbering like "1." or "1)" while keeping quantities like "2 חלב"
+      const lines = raw
+        .split(/[\n,]+/)
+        .map(s => s.replace(/^[-*•]+\s*/, '').replace(/^\d+[.)]\s+/, '').trim())
+        .filter(Boolean);
 
       lines.forEach(line => {
         const analysis = analyzeItemText(line);
         const finalFreq = freqChoice === 'auto' ? analysis.frequency : freqChoice;
         const newItem = {
           id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
-          name: line.replace(/\(לאלה\)/g, '').trim(),
-          qty: '',
+          name: analysis.parsedName,
+          qty: analysis.parsedQty || '',
           category: analysis.category,
           frequency: finalFreq,
           checked: false,
@@ -1551,6 +1610,25 @@
         .sort((a, b) => getUrgencyScore(b) - getUrgencyScore(a));
     }
 
+    function toggleHistoryItemEllaTagByIndex(idx) {
+      const sorted = getSortedTrackedHistoryItems();
+      const target = sorted[idx];
+      if (!target) return;
+      if (!target.tags) target.tags = { ella: false, pharm: false, cat: false };
+      target.tags.ella = !target.tags.ella;
+
+      // Also sync active item if currently in cart
+      const activeMatch = items.find(i => i.name.trim().toLowerCase() === target.name.trim().toLowerCase());
+      if (activeMatch) {
+        if (!activeMatch.tags) activeMatch.tags = { ella: false, pharm: false, cat: false };
+        activeMatch.tags.ella = target.tags.ella;
+      }
+
+      saveState();
+      renderHistoryModal();
+      renderList();
+    }
+
     function renderHistoryModal() {
       const container = document.getElementById('historyListContainer');
       const sorted = getSortedTrackedHistoryItems();
@@ -1566,12 +1644,19 @@
         const daysSince = getDaysSince(h.lastBought);
         const avgDays = h.avgIntervalDays || (h.frequency === 'monthly' ? 28 : 7);
         const due = isItemDueToBuy(h);
+        const isForElla = Boolean(h.tags?.ella);
 
         return `
           <div class="flex items-center justify-between gap-2 p-3 rounded-xl border ${due ? 'border-amber-300 bg-amber-50/70' : 'border-slate-200 bg-slate-50'}">
-            <div class="space-y-0.5 min-w-0 flex-1">
-              <div class="flex flex-wrap items-center gap-2">
+            <div class="space-y-1 min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-1.5">
                 <span class="font-bold text-sm text-slate-900">${escapeHtml(h.name)}</span>
+                ${isForElla
+                  ? `<button onclick="toggleHistoryItemEllaTagByIndex(${idx})" title="לחץ להסרת שיוך לאלה" class="text-[11px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-300 font-extrabold hover:bg-purple-200 transition">💜 עבור אלה</button>`
+                  : `<button onclick="toggleHistoryItemEllaTagByIndex(${idx})" title="לחץ לסימון עבור אלה" class="text-[10px] px-1.5 py-0.5 rounded-full bg-white text-slate-400 border border-slate-200 hover:text-purple-700 hover:border-purple-300 transition">💜 לאלה?</button>`
+                }
+                ${h.tags?.pharm ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold">💊 פארם</span>' : ''}
+                ${h.tags?.cat ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold">🐱 לחתולה</span>' : ''}
                 ${due ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-extrabold">💡 מומלץ כעת</span>' : ''}
               </div>
               <div class="text-xs text-slate-500">
